@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARLD STORE</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #fff;
+        }
+        #root {
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .store-container {
+            text-align: center;
+            max-width: 1200px;
+            padding: 20px;
+        }
+        .store-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 20px;
+            letter-spacing: 3px;
+        }
+        .store-subtitle {
+            font-size: 18px;
+            color: #666;
+            margin-bottom: 40px;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+        .product-card {
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+        }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+        .product-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .product-type {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        .product-price {
+            font-size: 18px;
+            font-weight: bold;
+            color: #007AFF;
+        }
+        .loading {
+            font-size: 18px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="store-container">
+            <h1 class="store-title">ARLD STORE</h1>
+            <p class="store-subtitle">Print on Demand Products</p>
+            
+            <div id="loading" class="loading">제품을 로딩 중...</div>
+            <div id="products-grid" class="products-grid" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Printful API에서 제품 가져오기
+        async function loadProducts() {
+            try {
+                const response = await fetch('https://api.printful.com/products');
+                const data = await response.json();
+                
+                if (data.code === 200 && data.result) {
+                    displayProducts(data.result);
+                } else {
+                    showError('제품을 불러올 수 없습니다.');
+                }
+            } catch (error) {
+                console.error('API 오류:', error);
+                showError('서버에 연결할 수 없습니다.');
+            }
+        }
+
+        function displayProducts(products) {
+            const loadingEl = document.getElementById('loading');
+            const gridEl = document.getElementById('products-grid');
+            
+            loadingEl.style.display = 'none';
+            gridEl.style.display = 'grid';
+            
+            // 처음 20개 제품만 표시
+            const limitedProducts = products.slice(0, 20);
+            
+            gridEl.innerHTML = limitedProducts.map(product => `
+                <div class="product-card">
+                    <img class="product-image" src="${product.image}" alt="${product.title}" loading="lazy">
+                    <div class="product-name">${product.title}</div>
+                    <div class="product-type">${product.type_name} • ${product.brand}</div>
+                    <div class="product-price">맞춤 제작</div>
+                </div>
+            `).join('');
+        }
+
+        function showError(message) {
+            const loadingEl = document.getElementById('loading');
+            loadingEl.textContent = message;
+            loadingEl.style.color = '#ff6b6b';
+        }
+
+        // 페이지 로드 후 제품 가져오기
+        document.addEventListener('DOMContentLoaded', loadProducts);
+    </script>
+</body>
+</html>
