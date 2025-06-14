@@ -1,21 +1,26 @@
 // Netlify Function for Printful API proxy
 exports.handler = async (event, context) => {
-  const PRINTFUL_API_KEY = process.env.PRINTFUL_API_KEY;
+  // OAuth 자격 증명은 환경변수에서 가져옴
+  const CLIENT_ID = process.env.PRINTFUL_CLIENT_ID;
+  const SECRET_KEY = process.env.PRINTFUL_SECRET_KEY;
   
-  if (!PRINTFUL_API_KEY) {
+  if (!CLIENT_ID || !SECRET_KEY) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Printful API key not configured' })
+      body: JSON.stringify({ error: 'Printful credentials not configured' })
     };
   }
 
   const { path, method = 'GET', body } = event.queryStringParameters || {};
   
+  // Basic Authentication 헤더 생성
+  const authHeader = Buffer.from(`${CLIENT_ID}:${SECRET_KEY}`).toString('base64');
+  
   try {
     const response = await fetch(`https://api.printful.com${path}`, {
       method,
       headers: {
-        'Authorization': `Bearer ${PRINTFUL_API_KEY}`,
+        'Authorization': `Basic ${authHeader}`,
         'Content-Type': 'application/json',
       },
       body: method !== 'GET' ? body : undefined,

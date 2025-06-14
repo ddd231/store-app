@@ -13,8 +13,8 @@ export default function StoreScreen({ navigation }) {
 
   const fetchProducts = async () => {
     try {
-      // Printful API 호출
-      const response = await fetch('/api/printful/products');
+      // Netlify Function을 통해 Printful API 호출
+      const response = await fetch('/.netlify/functions/printful?path=/products');
       const data = await response.json();
       setProducts(data.result || []);
     } catch (error) {
