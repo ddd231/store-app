@@ -25,7 +25,10 @@
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/favicon.png",
+      "name": "ARLD STORE",
+      "shortName": "ARLD"
     },
     "extra": {
       "eas": {
