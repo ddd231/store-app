@@ -22,6 +22,7 @@ if (Platform.OS === 'web' && typeof console !== 'undefined') {
 import LoginScreen from './src/screens/LoginScreen';
 import PasswordResetScreen from './src/screens/PasswordResetScreen';
 import TabNavigator from './src/navigation/TabNavigator';
+import StoreScreen from './src/screens/StoreScreen';
 
 // Hooks
 import { useAuth } from './src/hooks/useAuth';
@@ -136,6 +137,19 @@ export default function App() {
     );
   }
 
+  // 웹에서는 스토어만 표시
+  if (Platform.OS === 'web') {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Store" component={StoreScreen} />
+        </Stack.Navigator>
+        <StatusBar style="light" />
+      </NavigationContainer>
+    );
+  }
+
+  // 모바일 앱은 기존 로직 그대로
   return (
     <NavigationContainer>
       {authUser ? (
