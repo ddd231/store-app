@@ -82,6 +82,14 @@ function initializeSupabase() {
       }
       
       if (!supabaseUrl || !supabaseAnonKey) {
+        // 웹에서는 더미 클라이언트 반환
+        if (typeof window !== 'undefined') {
+          supabaseInstance = {
+            auth: { getUser: () => Promise.resolve({ data: { user: null } }) },
+            from: () => ({ select: () => Promise.resolve({ data: [] }) })
+          };
+          return supabaseInstance;
+        }
         throw new Error('Supabase URL 또는 Key가 없습니다');
       }
       
