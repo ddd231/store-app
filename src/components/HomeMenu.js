@@ -66,7 +66,7 @@ export default function HomeMenu({ visible, onClose, navigation }) {
   const handleMenuPress = (item) => {
     if (item.id === 'store') {
       // arld store는 웹으로 이동
-      const storeUrl = process.env.EXPO_PUBLIC_STORE_URL;
+      const storeUrl = process.env.EXPO_PUBLIC_STORE_URL || 'https://arldstore.netlify.app';
       if (Platform.OS === 'web') {
         window.open(storeUrl, '_blank');
       } else {
