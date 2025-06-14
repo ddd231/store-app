@@ -1,0 +1,504 @@
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
+import { Work } from '../types';
+import axios from 'axios';
+import { Alert, Platform } from 'react-native';
+import { supabase, uploadFileToSupabase, ensureBucketExists, DEFAULT_BUCKET } from '../services/supabaseClient.js';
+import api, { fetchSafely, sampleWorks as apiSampleWorks, getApiUrl, getToken as apiGetToken } from '../services/api';
+
+// 디버깅 설정
+const DEBUG = true;
+const debugLog = (...args: any[]) => {
+  if (DEBUG) {
+    console.log('[WorksContext]', ...args);
+  }
+};
+
+// 타임아웃 Promise 생성 함수
+const createTimeoutPromise = (timeoutMs: number = 10000): Promise<never> => {
+  return new Promise((_, reject) => {
+    setTimeout(() => {
+      reject(new Error(`요청 시간 초과 (${timeoutMs / 1000}초)`));
+    }, timeoutMs);
+  });
+};
+
+// API 기본 URL 설정
+// 모바일 기기에서는 localhost 대신 실제 IP 주소 사용 필요
+let API_URL = getApiUrl();
+debugLog('API URL 설정됨:', API_URL);
+
+// 확장된 샘플 작품 데이터
+const localSampleWorks: Work[] = [
+  {
+    id: '1',
+    title: '별의 기억',
+    category: 'novel',
+    author: '김작가',
+    genre: '판타지',
+    date: '2025-04-25',
+    description: '별이 떠오른 밤, 부르는 목소리를 따라 길을 떠난 소년의 모험 이야기. 길을 잃고 밤하늘의 별들과 소통하면서 자신을 찾아가는 여정을 그립니다.',
+    likes: 15,
+  },
+  {
+    id: '2',
+    title: '푸른 바다',
+    category: 'painting',
+    author: '김화가',
+    genre: '풍경화',
+    date: '2025-04-28',
+    description: '날이 떠올던 여름 중여행 때 본 제주도 해변의 놀라운 색깔을 표현해보았습니다. 인상파 기법을 활용하여 기억 속의 감정을 표현했습니다.',
+    likes: 28,
+    thumbnail: 'https://via.placeholder.com/200x300/3b82f6/ffffff?text=' + encodeURIComponent('푸른 바다'),
+  },
+  {
+    id: '3',
+    title: '나만의 빛',
+    category: 'novel',
+    author: '이지은',
+    genre: '성장소설',
+    date: '2025-04-20',
+    description: '완벽주의로 매일을 살아가던 소녀가 우연히 써내려간 일기장을 통해 자신의 영혼을 만나면서 발견하는 진정한 행복에 대한 이야기입니다.',
+    likes: 42,
+  },
+];
+
+interface WorksContextType {
+  works: Work[];
+  loading: boolean;
+  error: string | null;
+  addWork: (work: Omit<Work, 'id' | 'author' | 'likes' | 'date'>, file?: File) => Promise<boolean>;
+  uploadNovel: (title: string, text: string, description: string, genre: string) => Promise<boolean>;
+  uploadPainting: (title: string, description: string, genre: string, file: any) => Promise<boolean>;
+  fetchWorks: (username?: string) => Promise<void>;
+  deleteWork: (id: string) => Promise<boolean>;
+  toggleBookmark: (id: string) => Promise<boolean>;
+  fetchBookmarkedWorks: () => Promise<Work[]>;
+}
+
+const WorksContext = createContext<WorksContextType>({
+  works: [],
+  loading: false,
+  error: null,
+  addWork: async () => false,
+  uploadNovel: async () => false,
+  uploadPainting: async () => false,
+  fetchWorks: async () => {},
+  deleteWork: async () => false,
+  toggleBookmark: async () => false,
+  fetchBookmarkedWorks: async () => [],
+});
+
+export const useWorks = () => useContext(WorksContext);
+
+interface WorksProviderProps {
+  children: ReactNode;
+}
+
+export const WorksProvider = ({ children }: WorksProviderProps): React.ReactNode => {
+  // 상태 관리
+  const [works, setWorks] = useState<Work[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [retryCount, setRetryCount] = useState<number>(0);
+  
+  // 토큰 가져오기 (로그인된 사용자)
+  const getToken = useCallback(async (): Promise<string> => {
+    try {
+      return await apiGetToken() || '';
+    } catch (err) {
+      debugLog('토큰 가져오기 오류:', err);
+      return '';
+    }
+  }, []);
+  
+  // 작품 목록 불러오기
+  const fetchWorks = useCallback(async (username?: string): Promise<void> => {
+    if (loading) return;
+    
+    try {
+      // 마지막 요청 후 5초 이내에는 중복 요청 방지
+      const now = Date.now();
+      if (now - lastFetchTime < 5000) {
+        debugLog('마지막 요청 후 5초가 지나지 않았습니다. 요청 무시');
+        return;
+      }
+      
+      setLoading(true);
+      setError(null);
+      setLastFetchTime(now);
+      
+      debugLog('작품 목록 불러오기 시작...');
+      
+      let apiUrl = `${API_URL}/contents`;
+      if (username) {
+        apiUrl += `?username=${encodeURIComponent(username)}`;
+      }
+      
+      const token = await getToken();
+      
+      // Axios 설정
+      const axiosConfig = {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        timeout: 10000, // 10초 타임아웃
+      };
+      
+      // 타임아웃 Promise와 Axios 요청을 Promise.race로 경쟁시킴
+      const timeoutPromise = createTimeoutPromise(10000);
+      const fetchPromise = axios.get(apiUrl, axiosConfig);
+      
+      try {
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        const worksData = response.data || [];
+        
+        if (Array.isArray(worksData) && worksData.length > 0) {
+          debugLog(`${worksData.length}개의 작품을 성공적으로 불러왔습니다.`);
+          setWorks(worksData);
+          setRetryCount(0); // 성공 시 재시도 카운트 초기화
+        } else {
+          debugLog('API에서 작품 데이터를 받았지만 비어있습니다. 샘플 데이터 사용');
+          setWorks(localSampleWorks);
+        }
+      } catch (error) {
+        let errorMessage = '알 수 없는 오류가 발생했습니다.';
+        
+        if (axios.isAxiosError(error)) {
+          if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+            errorMessage = '서버 응답 시간이 초과되었습니다. 네트워크 연결을 확인해주세요.';
+          } else if (error.response) {
+            errorMessage = `서버 오류: ${error.response.status} ${error.response.statusText}`;
+          } else if (error.request) {
+            errorMessage = '서버에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.';
+          }
+        } else if (error instanceof Error) {
+          errorMessage = `오류: ${error.message}`;
+        }
+        
+        debugLog('작품 불러오기 오류:', errorMessage, error);
+        setError(errorMessage);
+        
+        // 재시도 로직 (최대 3회)
+        if (retryCount < 3) {
+          const nextRetryCount = retryCount + 1;
+          setRetryCount(nextRetryCount);
+          debugLog(`재시도 ${nextRetryCount}/3 - 2초 후 다시 시도합니다...`);
+          
+          setTimeout(() => {
+            debugLog(`재시도 ${nextRetryCount} 시작`);
+            fetchWorks(username);
+          }, 2000);
+        } else {
+          debugLog('최대 재시도 횟수 초과, 샘플 데이터 사용');
+          setWorks(localSampleWorks);
+        }
+      }
+    } catch (outerError) {
+      debugLog('fetchWorks 외부 오류:', outerError);
+      setError('예기치 않은 오류가 발생했습니다.');
+      setWorks(localSampleWorks);
+    } finally {
+      setLoading(false);
+    }
+  }, [loading, lastFetchTime, retryCount, getToken]);
+  
+  // 작품 추가 함수
+  const addWork = useCallback(async (
+    work: Omit<Work, 'id' | 'author' | 'likes' | 'date'>, 
+    file?: File
+  ): Promise<boolean> => {
+    if (work.category === 'novel') {
+      return uploadNovel(work.title, work.description, work.description, work.genre);
+    } else {
+      return uploadPainting(work.title, work.description, work.genre, file);
+    }
+  }, []);
+  
+  // 소설 업로드
+  const uploadNovel = useCallback(async (
+    title: string, 
+    text: string, 
+    description: string, 
+    genre: string
+  ): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const token = await getToken();
+      
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('text', text);
+      formData.append('description', description);
+      formData.append('genre', genre);
+      
+      const axiosConfig = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 30000 // 30초 (파일 업로드는 더 긴 타임아웃)
+      };
+      
+      const response = await axios.post(`${API_URL}/contents`, formData, axiosConfig);
+      
+      if (response.status >= 200 && response.status < 300) {
+        const data = response.data;
+        const newWork: Work = {
+          id: data.id || String(Date.now()),
+          title,
+          category: 'novel',
+          author: data.creator || '나',
+          genre,
+          date: new Date().toISOString().split('T')[0],
+          description,
+          likes: 0
+        };
+        
+        setWorks(prev => [newWork, ...prev]);
+        Alert.alert('성공', '작품이 업로드되었습니다.');
+        return true;
+      } else {
+        throw new Error(`서버 응답 오류: ${response.status}`);
+      }
+    } catch (err) {
+      const error = err as Error;
+      debugLog('소설 업로드 오류:', error);
+      setError(`소설 업로드에 실패했습니다: ${error.message}`);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken, API_URL]);
+  
+  // 그림 업로드
+  const uploadPainting = useCallback(async (
+    title: string, 
+    description: string, 
+    genre: string, 
+    file: any
+  ): Promise<boolean> => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Supabase 버킷 확인
+      await ensureBucketExists(DEFAULT_BUCKET);
+      
+      // 파일명 및 경로 생성
+      const fileName = Platform.OS === 'web' 
+        ? (file.name || 'unknown.png') 
+        : (file.uri ? file.uri.split('/').pop() || 'unknown.jpg' : 'unknown.jpg');
+      
+      const fileExt = fileName.split('.').pop() || 'jpg';
+      const filePath = `paintings/${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      
+      // Supabase에 파일 업로드
+      const uploadResult = await uploadFileToSupabase(file, DEFAULT_BUCKET, filePath);
+      
+      if (!uploadResult) {
+        throw new Error('업로드 함수가 결과를 반환하지 않음');
+      }
+      
+      if (uploadResult.error) {
+        throw new Error(`Supabase 업로드 오류: ${uploadResult.error}`);
+      }
+      
+      if (!uploadResult.data?.publicUrl) {
+        throw new Error('업로드는 성공했으나 공개 URL을 받지 못함');
+      }
+      
+      // 작품 데이터 준비
+      const token = await getToken();
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('genre', genre);
+      formData.append('thumbnail', uploadResult.data.publicUrl);
+      formData.append('content_type', 'painting');
+      
+      // API에 데이터 전송
+      const axiosConfig = {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 10000
+      };
+      
+      const response = await axios.post(`${API_URL}/contents`, formData, axiosConfig);
+      
+      const newWork: Work = {
+        id: response.data?.id || String(Date.now()),
+        title,
+        category: 'painting',
+        author: response.data?.creator || '나',
+        genre,
+        date: new Date().toISOString().split('T')[0],
+        description,
+        thumbnail: uploadResult.data.publicUrl,
+        likes: 0
+      };
+      
+      setWorks(prev => [newWork, ...prev]);
+      Alert.alert('업로드 성공', '작품이 성공적으로 업로드되었습니다.');
+      return true;
+    } catch (err) {
+      const error = err as Error;
+      debugLog('그림 업로드 오류:', error);
+      setError(`그림 업로드에 실패했습니다: ${error.message}`);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken, API_URL]);
+  
+  // 작품 삭제
+  const deleteWork = useCallback(async (id: string): Promise<boolean> => {
+    setLoading(true);
+    
+    try {
+      const token = await getToken();
+      
+      const response = await axios.delete(`${API_URL}/contents/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 10000
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        setWorks(prev => prev.filter(work => work.id !== id));
+        return true;
+      } else {
+        throw new Error(`서버 응답 오류: ${response.status}`);
+      }
+    } catch (err) {
+      const error = err as Error;
+      debugLog('작품 삭제 오류:', error);
+      setError(`작품 삭제에 실패했습니다: ${error.message}`);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [getToken, API_URL]);
+  
+  // 북마크 토글
+  const toggleBookmark = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const token = await getToken();
+      
+      const response = await axios.post(`${API_URL}/contents/${id}/bookmark`, {}, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 10000
+      });
+      
+      if (response.status >= 200 && response.status < 300) {
+        setWorks(prev => 
+          prev.map(work => 
+            work.id === id 
+              ? { ...work, bookmarked: !work.bookmarked, isBookmarked: !work.isBookmarked } 
+              : work
+          )
+        );
+        return true;
+      } else {
+        throw new Error(`서버 응답 오류: ${response.status}`);
+      }
+    } catch (err) {
+      const error = err as Error;
+      debugLog('북마크 토글 오류:', error);
+      // 오프라인 모드에서는 로컬에서만 상태 변경
+      setWorks(prev => 
+        prev.map(work => 
+          work.id === id 
+            ? { ...work, bookmarked: !work.bookmarked, isBookmarked: !work.isBookmarked } 
+            : work
+        )
+      );
+      return true; // 로컬 변경은 성공으로 간주
+    }
+  }, [getToken, API_URL]);
+  
+  // 북마크된 작품 불러오기
+  const fetchBookmarkedWorks = useCallback(async (): Promise<Work[]> => {
+    try {
+      const token = await getToken();
+      
+      const response = await axios.get(`${API_URL}/contents/bookmarked`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        timeout: 10000
+      });
+      
+      if (response.status >= 200 && response.status < 300 && Array.isArray(response.data)) {
+        const bookmarkedWorks = response.data;
+        
+        // 기존 작품 목록에 북마크 정보 업데이트
+        setWorks(prev => {
+          // 기존 작품 업데이트
+          const updatedWorks = prev.map(work => {
+            const isBookmarked = bookmarkedWorks.some(bw => bw.id === work.id);
+            return isBookmarked 
+              ? { ...work, bookmarked: true, isBookmarked: true } 
+              : work;
+          });
+          
+          // 누락된 북마크 작품 추가
+          bookmarkedWorks.forEach(bookmarkedWork => {
+            if (!updatedWorks.some(work => work.id === bookmarkedWork.id)) {
+              updatedWorks.push({
+                ...bookmarkedWork,
+                bookmarked: true,
+                isBookmarked: true
+              });
+            }
+          });
+          
+          return updatedWorks;
+        });
+        
+        return bookmarkedWorks;
+      } else {
+        throw new Error('북마크된 작품 목록을 불러오지 못했습니다');
+      }
+    } catch (err) {
+      debugLog('북마크 작품 불러오기 오류:', err);
+      
+      // 로컬에서 북마크된 작품 필터링
+      const localBookmarkedWorks = works.filter(work => work.bookmarked || work.isBookmarked);
+      return localBookmarkedWorks;
+    }
+  }, [getToken, API_URL, works]);
+  
+  // 컴포넌트 마운트 시 최초 데이터 로드
+  useEffect(() => {
+    debugLog('WorksProvider 마운트됨, 초기 데이터 로드');
+    fetchWorks();
+  }, [fetchWorks]);
+  
+  // 콘텍스트 값 생성
+  const contextValue = {
+    works,
+    loading,
+    error,
+    addWork,
+    uploadNovel,
+    uploadPainting,
+    fetchWorks,
+    deleteWork,
+    toggleBookmark,
+    fetchBookmarkedWorks
+  };
+  
+  return (
+    <WorksContext.Provider value={contextValue}>
+      {children}
+    </WorksContext.Provider>
+  );
+};
+
+export default WorksContext;

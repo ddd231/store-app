@@ -1,0 +1,124 @@
+[Sponsored by Trae —— Build with Free GPT-4.1 & Claude 3.7. Fully MCP-Ready. Dismiss](https://www.trae.ai/?utm_source=ads&utm_medium=mcpso&utm_campaign=banner)
+Sponsored by Trae —— Build with Free GPT-4.1 & Claude 3.7. Fully MCP-Ready.
+[MCP.so](https://mcp.so/en)
+- [Explore](https://mcp.so/en/explore)
+- [Chat](https://mcp.so/en/chat)
+- [Playground](https://mcp.so/en/playground)
+- More 
+[Explore](https://mcp.so/en/explore)
+[Chat](https://mcp.so/en/chat)
+[Playground](https://mcp.so/en/playground)
+[Submit](https://mcp.so/en/submit)
+[MCP.so](https://mcp.so/en)
+1. [Home](https://mcp.so/en)
+2. [Servers](https://mcp.so/en/servers)
+3. @modelcontextprotocol/server-terminal
+[Home](https://mcp.so/en)
+[Servers](https://mcp.so/en/servers)
+
+# @modelcontextprotocol/server-terminal
+
+[# mcp-terminal](https://mcp.so/en/tag/mcp-terminal)
+[# terminal-server](https://mcp.so/en/tag/terminal-server)
+[Overview](https://mcp.so/server/RichardTheuws_mcp-terminal-server?)
+[Content](https://mcp.so/server/RichardTheuws_mcp-terminal-server?tab=content)
+[Tools](https://mcp.so/server/RichardTheuws_mcp-terminal-server?tab=tools)
+[Comments](https://mcp.so/server/RichardTheuws_mcp-terminal-server?tab=comments)
+
+## what is @modelcontextprotocol/server-terminal?
+@modelcontextprotocol/server-terminal is a terminal server implementation for the Model Context Protocol (MCP) that provides secure and controlled access to terminal commands and npm operations.
+
+## how to use @modelcontextprotocol/server-terminal?
+To use the server-terminal, install it via npm and configure it in your MCP settings. You can then execute shell commands, manage npm operations, and control the working environment through TypeScript.
+
+## key features of @modelcontextprotocol/server-terminal?
+- Execute shell commands with full control
+- Built-in npm operations (install, run scripts)
+- Timeout handling for commands
+- Security through an allowed commands list
+- Management of environment variables
+- Control over the working directory
+- Support for TypeScript
+
+## use cases of @modelcontextprotocol/server-terminal?
+1. Securely executing shell commands in a controlled environment.
+2. Managing npm packages and scripts within a project.
+3. Automating development workflows with TypeScript support.
+
+## FAQ from @modelcontextprotocol/server-terminal?
+
+- Can I execute any shell command?
+No, only commands listed in the allowed commands configuration can be executed for security reasons.
+- How do I install the server-terminal?
+You can install it using npm with the command: npm install @modelcontextprotocol/server-terminal.
+
+```
+npm install @modelcontextprotocol/server-terminal
+```
+
+- Is there support for TypeScript?
+Yes, the server-terminal supports TypeScript, allowing for type-safe command execution.
+[TraeBuild with Free GPT-4.1 & Claude 3.7. Fully MCP-Ready.](https://trae.ai/)
+[Visual Studio Code - Open Source ("Code - OSS")Visual Studio Code](https://mcp.so/en/server/vscode)
+[Amap Maps高德地图官方 MCP Server](https://mcp.so/en/server/amap-maps)
+[RedisA Model Context Protocol server that provides access to Redis databases. This server enables LLMs to interact with Redis key-value stores through a set of standardized tools.](https://mcp.so/en/server/redis)
+[Baidu Map百度地图核心API现已全面兼容MCP协议，是国内首家兼容MCP协议的地图服务商。](https://mcp.so/en/server/baidu-map)
+[Jina AI MCP ToolsA Model Context Protocol (MCP) server that integrates with Jina AI Search Foundation APIs.](https://mcp.so/en/server/jina-mcp-tools)
+[Serper MCP ServerA Serper MCP Server](https://mcp.so/en/server/serper-mcp-server)
+[Tavily MCP Server 🚀](https://mcp.so/en/server/tavily-mcp)
+[Howtocook Mcp基于Anduin2017 / HowToCook （程序员在家做饭指南）的mcp server，帮你推荐菜谱、规划膳食，解决“今天吃什么“的世纪难题；
+Based on Anduin2017/HowToCook (Programmer's Guide to Cooking at Home), MCP Server helps you recommend recipes, plan meals, and solve the century old problem of "what to eat today"](https://mcp.so/en/server/howtocook-mcp)
+[Y GuiA web-based graphical interface for AI chat interactions with support for multiple AI models and MCP (Model Context Protocol) servers.](https://mcp.so/en/server/y-gui)
+[EdgeOne Pages MCPAn MCP service designed for deploying HTML content to EdgeOne Pages and obtaining an accessible public URL.](https://mcp.so/en/server/edgeone-pages-mcp)
+[Context7 MCP - Up-to-date Code Docs For Any PromptContext7 MCP Server -- Up-to-date code documentation for LLMs and AI code editors](https://mcp.so/en/server/context7)
+[Zhipu Web SearchZhipu Web Search MCP Server is a search engine specifically designed for large models. It integrates four search engines, allowing users to flexibly compare and switch between them. Building upon the web crawling and ranking capabilities of traditional search engines, it enhances intent recognition capabilities, returning results more suitable for large model processing (such as webpage titles, URLs, summaries, site names, site icons, etc.). This helps AI applications achieve "dynamic knowledge acquisition" and "precise scenario adaptation" capabilities.](https://mcp.so/en/server/zhipu-web-search)
+[MCP AdvisorMCP Advisor & Installation - Use the right MCP server for your needs](https://mcp.so/en/server/mcpadvisor)
+[MiniMax MCPOfficial MiniMax Model Context Protocol (MCP) server that enables interaction with powerful Text to Speech, image generation and video generation APIs.](https://mcp.so/en/server/MiniMax-MCP)
+[CursorThe AI Code Editor](https://mcp.so/en/server/Cursor)
+[Playwright McpPlaywright MCP server](https://mcp.so/en/server/playwright-mcp)
+[DeepChatYour AI Partner on Desktop](https://mcp.so/en/server/deepchat)
+[ChatWiseThe second fastest AI chatbot™](https://mcp.so/en/server/ChatWise)
+[BlenderBlenderMCP connects Blender to Claude AI through the Model Context Protocol (MCP), allowing Claude to directly interact with and control Blender. This integration enables prompt assisted 3D modeling, scene creation, and manipulation.](https://mcp.so/en/server/blender)
+[WindsurfThe new purpose-built IDE to harness magic](https://mcp.so/en/server/Windsurf)
+MCP Servers
+The largest collection of MCP Servers, featuring Awesome MCP Servers and Claude MCP integration.
+Explore
+- [MCP Servers](https://mcp.so/en/servers)
+- [MCP Clients](https://mcp.so/en/clients)
+- [MCP Categories](https://mcp.so/en/categories)
+- [MCP Tags](https://mcp.so/en/tags)
+- [MCP Posts](https://mcp.so/en/posts)
+[MCP Servers](https://mcp.so/en/servers)
+[MCP Clients](https://mcp.so/en/clients)
+[MCP Categories](https://mcp.so/en/categories)
+[MCP Tags](https://mcp.so/en/tags)
+[MCP Posts](https://mcp.so/en/posts)
+Community
+- [Telegram](https://t.me/+N0gv4O9SXio2YWU1)
+
+## FAQ from @modelcontextprotocol/server-terminal?
+
+- [Discord](https://discord.gg/RsYPRrnyqg)
+- [Twitter](https://x.com/chatmcp)
+- [GitHub](https://github.com/chatmcp/mcp-directory/issues)
+[Telegram](https://t.me/+N0gv4O9SXio2YWU1)
+[Discord](https://discord.gg/RsYPRrnyqg)
+[Twitter](https://x.com/chatmcp)
+[GitHub](https://github.com/chatmcp/mcp-directory/issues)
+Friends
+- [ThinkAny](https://thinkany.ai)
+- [HeyBeauty](https://heybeauty.ai)
+- [CopyWeb](https://copyweb.ai)
+- [Raphael AI](https://raphael.app)
+[ThinkAny](https://thinkany.ai)
+[HeyBeauty](https://heybeauty.ai)
+[CopyWeb](https://copyweb.ai)
+[Raphael AI](https://raphael.app)
+© 2025 • mcp.so All rights reserved.[build with ShipAny](https://shipany.ai)
+- [Privacy Policy](https://mcp.so/privacy-policy)
+- [Terms of Service](https://mcp.so/terms-of-service)
+[Privacy Policy](https://mcp.so/privacy-policy)
+[Terms of Service](https://mcp.so/terms-of-service)
+World First!
+MCP Innovation Challenge
+[Join Now](https://innovation.mcp.so/)
