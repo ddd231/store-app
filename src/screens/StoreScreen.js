@@ -13,11 +13,24 @@ export default function StoreScreen({ navigation }) {
 
   const fetchProducts = async () => {
     try {
-      // Catalog API를 통해 제품 목록 가져오기
-      const response = await fetch('/.netlify/functions/printful?path=/catalog/products');
-      const data = await response.json();
-      console.log('Catalog 응답:', data);
-      setProducts(data.result || []);
+      // 테스트용 더미 데이터
+      const dummyProducts = [
+        {
+          id: 1,
+          name: 'Basic T-Shirt',
+          thumbnail_url: 'https://via.placeholder.com/300x300?text=T-Shirt',
+          retail_price: '19.99'
+        },
+        {
+          id: 2,
+          name: 'Hoodie',
+          thumbnail_url: 'https://via.placeholder.com/300x300?text=Hoodie',
+          retail_price: '39.99'
+        }
+      ];
+      
+      console.log('더미 제품 로드됨');
+      setProducts(dummyProducts);
     } catch (error) {
       console.error('제품 로드 오류:', error);
     } finally {
