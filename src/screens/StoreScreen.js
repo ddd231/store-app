@@ -13,26 +13,35 @@ export default function StoreScreen({ navigation }) {
 
   const fetchProducts = async () => {
     try {
-      // 테스트용 더미 데이터
-      const dummyProducts = [
+      // Printful Catalog API 직접 호출 (인증 불필요)
+      const response = await fetch('https://api.printful.com/products');
+      const data = await response.json();
+      
+      if (data.code === 200 && data.result) {
+        // API 응답을 UI에 맞게 변환
+        const transformedProducts = data.result.map(product => ({
+          id: product.id,
+          name: product.title,
+          thumbnail_url: product.image,
+          retail_price: 'Custom Price', // 실제 가격은 variant에 따라 다름
+          type: product.type_name,
+          brand: product.brand
+        }));
+        
+        console.log('Printful 제품 로드됨:', transformedProducts.length);
+        setProducts(transformedProducts);
+      }
+    } catch (error) {
+      console.error('제품 로드 오류:', error);
+      // 에러 시 더미 데이터 표시
+      setProducts([
         {
           id: 1,
           name: 'Basic T-Shirt',
           thumbnail_url: 'https://via.placeholder.com/300x300?text=T-Shirt',
           retail_price: '19.99'
-        },
-        {
-          id: 2,
-          name: 'Hoodie',
-          thumbnail_url: 'https://via.placeholder.com/300x300?text=Hoodie',
-          retail_price: '39.99'
         }
-      ];
-      
-      console.log('더미 제품 로드됨');
-      setProducts(dummyProducts);
-    } catch (error) {
-      console.error('제품 로드 오류:', error);
+      ]);
     } finally {
       setLoading(false);
     }
