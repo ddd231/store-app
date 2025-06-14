@@ -97,56 +97,23 @@
         // 제품 가져오기 (백업 포함)
         async function loadProducts() {
             try {
-                console.log('Netlify Function 호출 시도...');
                 const response = await fetch('/.netlify/functions/products');
-                console.log('응답 상태:', response.status);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
                 
                 const data = await response.json();
-                console.log('받은 데이터:', data);
                 
                 if (data.code === 200 && data.result) {
                     displayProducts(data.result);
                 } else {
-                    console.log('데이터 형식 오류, 더미 데이터 사용');
-                    useFallbackData();
+                    showError('제품을 불러올 수 없습니다.');
                 }
             } catch (error) {
                 console.error('API 오류:', error);
-                console.log('더미 데이터로 대체');
-                useFallbackData();
+                showError('서버에 연결할 수 없습니다.');
             }
-        }
-
-        // 더미 데이터 사용
-        function useFallbackData() {
-            const fallbackProducts = [
-                {
-                    id: 1,
-                    title: "Unisex Staple T-Shirt | Bella + Canvas 3001",
-                    type_name: "T-Shirt",
-                    brand: "Bella + Canvas",
-                    image: "https://files.cdn.printful.com/products/71/product_1581412207.jpg"
-                },
-                {
-                    id: 2,
-                    title: "Unisex Heavy Cotton Tee",
-                    type_name: "T-Shirt", 
-                    brand: "Gildan",
-                    image: "https://files.cdn.printful.com/products/1/product_1696579767.jpg"
-                },
-                {
-                    id: 3,
-                    title: "Unisex Pullover Hoodie",
-                    type_name: "Hoodie",
-                    brand: "Gildan",
-                    image: "https://files.cdn.printful.com/products/146/product_1581412263.jpg"
-                }
-            ];
-            displayProducts(fallbackProducts);
         }
 
         function displayProducts(products) {
