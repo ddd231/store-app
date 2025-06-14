@@ -87,10 +87,8 @@ export default function App() {
     );
   }
 
-  // 일반 앱 로직
-  console.log('[App] useAuth 호출 전');
+  // 모바일에서만 useAuth 호출
   const { user, loading } = useAuth();
-  console.log('[App] useAuth 결과:', { user: user?.id, loading });
   
   const [authUser, setAuthUser] = useState(null);
 
