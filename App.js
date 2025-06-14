@@ -137,15 +137,13 @@ export default function App() {
     );
   }
 
-  // 웹에서는 스토어만 표시
+  // 웹에서는 간단한 테스트 화면
   if (Platform.OS === 'web') {
     return (
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Store" component={StoreScreen} />
-        </Stack.Navigator>
-        <StatusBar style="light" />
-      </NavigationContainer>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <Text style={{ fontSize: 24, color: '#000' }}>ARLD STORE</Text>
+        <Text style={{ fontSize: 16, color: '#666', marginTop: 10 }}>스토어가 곧 오픈됩니다</Text>
+      </View>
     );
   }
 
