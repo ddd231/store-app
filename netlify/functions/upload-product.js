@@ -1,6 +1,4 @@
 // Netlify Function for uploading products to Printful
-const multipart = require('lambda-multipart-parser');
-
 exports.handler = async (event, context) => {
   // CORS 헤더 설정
   const headers = {
@@ -38,32 +36,19 @@ exports.handler = async (event, context) => {
     // Basic Authentication 헤더
     const authHeader = Buffer.from(`${CLIENT_ID}:${SECRET_KEY}`).toString('base64');
 
-    // Multipart 데이터 파싱
-    const result = await multipart.parse(event);
-    const { productName, variantId, retailPrice } = result;
-    const file = result.file;
+    // JSON 데이터 파싱
+    const data = JSON.parse(event.body);
+    const { productName, variantId, retailPrice, fileUrl } = data;
 
-    if (!file || !productName || !variantId) {
+    if (!fileUrl || !productName || !variantId) {
       throw new Error('필수 필드가 누락되었습니다.');
     }
 
-    // 1단계: 파일을 Printful 파일 라이브러리에 업로드
-    console.log('파일 업로드 시작...');
-    
-    // 파일을 Base64로 인코딩
-    const fileBuffer = Buffer.from(file.content, 'binary');
-    const base64File = fileBuffer.toString('base64');
-    
-    // 임시 URL 생성 (실제로는 클라우드 스토리지 사용 권장)
-    const tempUrl = `data:${file.contentType};base64,${base64File}`;
-
-    // 2단계: Printful에 제품 생성
     console.log('제품 생성 시작...');
     
     const productData = {
       sync_product: {
-        name: productName,
-        thumbnail: tempUrl
+        name: productName
       },
       sync_variants: [
         {
@@ -71,7 +56,7 @@ exports.handler = async (event, context) => {
           variant_id: parseInt(variantId),
           files: [
             {
-              url: tempUrl,
+              url: fileUrl,
               type: 'default'
             }
           ]
