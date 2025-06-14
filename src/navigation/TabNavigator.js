@@ -30,6 +30,9 @@ import CreateGalleryScreen from '../screens/CreateGalleryScreen';
 import GalleryDetailScreen from '../screens/GalleryDetailScreen';
 import EditGalleryScreen from '../screens/EditGalleryScreen';
 import EditWorkScreen from '../screens/EditWorkScreen';
+import ContestEditScreen from '../screens/ContestEditScreen';
+import BlogEditScreen from '../screens/BlogEditScreen';
+import JobEditScreen from '../screens/JobEditScreen';
 import PrivacyPolicyScreen from '../screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from '../screens/TermsOfServiceScreen';
 import ViewHistoryScreen from '../screens/ViewHistoryScreen';
@@ -367,6 +370,21 @@ export default function TabNavigator() {
       <Stack.Screen 
         name="EditWork" 
         component={EditWorkScreen}
+        options={scaleAnimation}
+      />
+      <Stack.Screen 
+        name="ContestEdit" 
+        component={ContestEditScreen}
+        options={scaleAnimation}
+      />
+      <Stack.Screen 
+        name="BlogEdit" 
+        component={BlogEditScreen}
+        options={scaleAnimation}
+      />
+      <Stack.Screen 
+        name="JobEdit" 
+        component={JobEditScreen}
         options={scaleAnimation}
       />
       <Stack.Screen 

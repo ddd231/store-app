@@ -136,11 +136,17 @@ export default function ProfileScreen({ navigation, route }) {
     }
   };
   
-  const profileStats = [
-    { label: '작품', value: myWorks.length.toString() },
-    { label: '참여', value: '0' },
-    { label: '완료', value: '0' },
-  ];
+  const profileStats = useMemo(() => {
+    const totalWorks = myWorks.length;
+    const novelCount = myWorks.filter(work => work.type === 'novel').length;
+    const paintingCount = myWorks.filter(work => work.type === 'painting').length;
+    
+    return [
+      { label: '작품', value: totalWorks.toString() },
+      { label: '소설', value: novelCount.toString() },
+      { label: '그림', value: paintingCount.toString() },
+    ];
+  }, [myWorks]);
 
   const tabButtons = [
     { id: 'portfolio', name: 'PORTFOLIO' },
@@ -309,10 +315,8 @@ export default function ProfileScreen({ navigation, route }) {
       {/* INFO 탭 */}
       {selectedTab === 'info' && (
         <View style={styles.infoContainer}>
-          {userProfile?.info ? (
+          {userProfile?.info && (
             <Text style={styles.infoText}>{userProfile.info}</Text>
-          ) : (
-            <Text style={styles.comingSoon}>정보를 추가해보세요</Text>
           )}
         </View>
       )}
@@ -349,9 +353,6 @@ export default function ProfileScreen({ navigation, route }) {
             )}
           </View>
           
-          {myGalleries.length === 0 && !isOwnProfile && (
-            <Text style={styles.emptyText}>아직 갤러리가 없습니다</Text>
-          )}
         </View>
       )}
 
@@ -455,7 +456,7 @@ export default function ProfileScreen({ navigation, route }) {
         renderItem={renderWorkItem}
         keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
         numColumns={3}
-        columnWrapperStyle={portfolioData.length > 1 ? styles.portfolioRow : null}
+        columnWrapperStyle={styles.portfolioRow}
         ListHeaderComponent={renderHeader}
         ListFooterComponent={renderFooter}
         showsVerticalScrollIndicator={false}
@@ -706,7 +707,9 @@ const styles = StyleSheet.create({
     color: theme.colors.text.secondary,
   },
   infoContainer: {
-    padding: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.lg,
   },
   infoText: {
     ...theme.typography.body,

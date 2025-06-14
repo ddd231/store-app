@@ -50,7 +50,7 @@ export default function ContestDetailScreen({ navigation, route }) {
         <Text style={styles.headerTitle}>컨테스트</Text>
         {isDeveloper ? (
           <TouchableOpacity 
-            onPress={() => Alert.alert('편집', '편집 기능 준비 중입니다.')}
+            onPress={() => navigation.navigate('ContestEdit', { contestId: contest?.id })}
             style={styles.editButton}
           >
             <Ionicons name="pencil-outline" size={18} color={theme.colors.text.primary} />

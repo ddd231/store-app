@@ -93,7 +93,7 @@ export default function JobDetailScreen({ navigation, route }) {
         <Text style={styles.headerTitle}>채용공고</Text>
         {canEdit ? (
           <TouchableOpacity 
-            onPress={() => Alert.alert('편집', '편집 기능 준비 중입니다.')}
+            onPress={() => navigation.navigate('JobEdit', { jobId: job.id })}
             style={styles.editButton}
           >
             <Ionicons name="pencil-outline" size={18} color={theme.colors.text.primary} />

@@ -50,7 +50,7 @@ export default function BlogDetailScreen({ navigation, route }) {
         <Text style={styles.headerTitle}>블로그</Text>
         {isDeveloper ? (
           <TouchableOpacity 
-            onPress={() => Alert.alert('편집', '편집 기능 준비 중입니다.')}
+            onPress={() => navigation.navigate('BlogEdit', { blogId: blog?.id })}
             style={styles.editButton}
           >
             <Ionicons name="pencil-outline" size={18} color={theme.colors.text.primary} />

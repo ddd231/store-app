@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "portfolio-chat-app",
+    "slug": "portfolio-chat-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.anonymous.portfoliochatapp"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.portfoliochatapp",
+      "navigationBar": {
+        "backgroundColor": "#f5f2ed"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c7ae9ecf-1b7b-4340-90e0-178d39dd7c3e"
+      }
+    }
+  }
+}
