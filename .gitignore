@@ -71,6 +71,10 @@ dist/
 web-build/
 *.orig.*
 
+# Native folders (for Prebuild)
+/android
+/ios
+
 # Environment variables
 .env
 .env.local

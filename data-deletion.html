@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARLD - 계정 및 데이터 삭제 요청</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            color: #000;
+            font-size: 28px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo-text {
+            font-size: 48px;
+            font-weight: bold;
+            color: #A8956F;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #333;
+            font-size: 22px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        p {
+            margin: 15px 0;
+        }
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .warning-box h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .deletion-options {
+            background-color: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+        .option {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #e0e0e0;
+        }
+        .option h3 {
+            color: #A8956F;
+            margin-top: 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #A8956F;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .button:hover {
+            background-color: #8B7961;
+        }
+        .secondary-button {
+            background-color: #6c757d;
+        }
+        .secondary-button:hover {
+            background-color: #5a6268;
+        }
+        .data-list {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .data-list ul {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+        .data-list li {
+            margin: 8px 0;
+        }
+        .retention-notice {
+            background-color: #e9ecef;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+        }
+        .app-info {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="logo">
+        <div class="logo-text">ARLD</div>
+    </div>
+    
+    <h1>계정 및 데이터 삭제 요청</h1>
+    
+    <div class="container">
+        <div class="app-info">
+            <p><strong>앱 이름:</strong> ARLD</p>
+            <p><strong>개발자:</strong> ARLD Team</p>
+            <p><strong>패키지명:</strong> com.anonymous.portfoliochatapp</p>
+        </div>
+
+        <h2>계정 삭제 안내</h2>
+        <p>ARLD 앱에서 계정을 삭제하시면 다음과 같은 데이터가 영구적으로 삭제됩니다.</p>
+
+        <div class="data-list">
+            <h3>삭제되는 데이터:</h3>
+            <ul>
+                <li>계정 정보 (이메일, 비밀번호)</li>
+                <li>프로필 정보 (사용자명, 자기소개)</li>
+                <li>업로드한 작품 및 포트폴리오</li>
+                <li>채팅 메시지 및 대화 내역</li>
+                <li>친구 목록 및 팔로우 정보</li>
+                <li>북마크 및 좋아요 기록</li>
+                <li>앱 사용 기록 및 설정</li>
+            </ul>
+        </div>
+
+        <div class="warning-box">
+            <h3>⚠️ 주의사항</h3>
+            <ul>
+                <li>계정 삭제 후에는 모든 데이터를 복구할 수 없습니다.</li>
+                <li>삭제 요청 후 30일 이내에 처리됩니다.</li>
+                <li>삭제 처리 중에도 일부 데이터는 백업 시스템에 최대 90일간 보관될 수 있습니다.</li>
+            </ul>
+        </div>
+
+        <div class="deletion-options">
+            <h2>계정 삭제 방법</h2>
+            
+            <div class="option">
+                <h3>방법 1: 앱에서 직접 삭제</h3>
+                <p>ARLD 앱을 실행하고 다음 경로로 이동하세요:</p>
+                <ol>
+                    <li>앱 실행 → 프로필 탭 선택</li>
+                    <li>설정 아이콘 터치</li>
+                    <li>계정 관리 → 계정 삭제</li>
+                    <li>비밀번호 확인 후 삭제 진행</li>
+                </ol>
+            </div>
+
+            <div class="option">
+                <h3>방법 2: 이메일로 삭제 요청</h3>
+                <p>앱을 다시 설치하고 싶지 않으시다면 이메일로 삭제를 요청하실 수 있습니다.</p>
+                <a href="mailto:eltyf3@gmail.com?subject=ARLD 계정 삭제 요청&body=안녕하세요,%0D%0A%0D%0AARLD 계정 삭제를 요청합니다.%0D%0A%0D%0A계정 이메일: %0D%0A가입 시 사용한 이름: %0D%0A삭제 사유 (선택사항): %0D%0A%0D%0A감사합니다." class="button">삭제 요청 이메일 보내기</a>
+                <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                    요청 시 다음 정보를 포함해주세요:
+                    <br>• 계정 이메일 주소
+                    <br>• 가입 시 사용한 사용자명
+                </p>
+            </div>
+        </div>
+
+        <div class="retention-notice">
+            <h3>데이터 보관 정책</h3>
+            <p>다음의 경우 일부 데이터를 보관할 수 있습니다:</p>
+            <ul>
+                <li><strong>법적 의무:</strong> 관련 법령에 따라 보관이 필요한 경우</li>
+                <li><strong>보안 및 사기 방지:</strong> 악의적인 활동 방지를 위해 필요한 최소한의 정보</li>
+                <li><strong>백업 시스템:</strong> 기술적 제약으로 인해 백업에서 최대 90일간 보관</li>
+            </ul>
+        </div>
+
+        <h2>문의사항</h2>
+        <p>계정 삭제와 관련하여 궁금한 사항이 있으시면 아래로 문의해주세요:</p>
+        <p>
+            <strong>이메일:</strong> eltyf3@gmail.com<br>
+            <strong>처리 기간:</strong> 영업일 기준 3-5일 이내 답변
+        </p>
+
+        <div class="footer">
+            <p>최종 업데이트: 2025년 6월 20일</p>
+            <p>
+                <a href="https://ddd231.github.io/privacy-policy/" style="color: #A8956F;">개인정보처리방침</a> | 
+                <a href="#" style="color: #A8956F;">이용약관</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

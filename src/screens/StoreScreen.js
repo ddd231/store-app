@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
 import { theme } from '../styles/theme';
+import { logger } from '../shared/utils/logger';
 
-export default function StoreScreen({ navigation }) {
+function StoreScreen({ navigation }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  useEffect(() => {
+  useEffect(function() {
     fetchProducts();
   }, []);
 
-  const fetchProducts = async () => {
+  async function fetchProducts() {
     try {
       // Printful Catalog API 직접 호출 (인증 불필요)
       const response = await fetch('https://api.printful.com/products');
@@ -19,16 +20,18 @@ export default function StoreScreen({ navigation }) {
       
       if (data.code === 200 && data.result) {
         // API 응답을 UI에 맞게 변환
-        const transformedProducts = data.result.map(product => ({
-          id: product.id,
-          name: product.title,
-          thumbnail_url: product.image,
-          retail_price: 'Custom Price', // 실제 가격은 variant에 따라 다름
-          type: product.type_name,
-          brand: product.brand
-        }));
+        const transformedProducts = data.result.map(function(product) { 
+          return {
+            id: product.id,
+            name: product.title,
+            thumbnail_url: product.image,
+            retail_price: 'Custom Price', // 실제 가격은 variant에 따라 다름
+            type: product.type_name,
+            brand: product.brand
+          };
+        });
         
-        console.log('Printful 제품 로드됨:', transformedProducts.length);
+        logger.log('Printful 제품 로드됨:', transformedProducts.length);
         setProducts(transformedProducts);
       }
     } catch (error) {
@@ -47,7 +50,7 @@ export default function StoreScreen({ navigation }) {
     }
   };
 
-  const handleProductPress = (product) => {
+  function handleProductPress(product) {
     if (Platform.OS === 'web') {
       // 웹에서는 바로 주문 페이지로
       window.open(`/store/product/${product.id}`, '_self');
@@ -73,11 +76,11 @@ export default function StoreScreen({ navigation }) {
       </View>
 
       <View style={styles.productsGrid}>
-        {products.map((product) => (
+        {products.map(function(product) { return (
           <TouchableOpacity
             key={product.id}
             style={styles.productCard}
-            onPress={() => handleProductPress(product)}
+            onPress={function() { handleProductPress(product); }}
           >
             <Image
               source={{ uri: product.thumbnail_url }}
@@ -86,7 +89,7 @@ export default function StoreScreen({ navigation }) {
             <Text style={styles.productName}>{product.name}</Text>
             <Text style={styles.productPrice}>${product.retail_price}</Text>
           </TouchableOpacity>
-        ))}
+        ); })}
       </View>
     </ScrollView>
   );
@@ -150,3 +153,5 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
   },
 });
+
+export default StoreScreen;

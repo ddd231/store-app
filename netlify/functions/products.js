@@ -17,22 +17,18 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // OAuth 자격 증명
-    const CLIENT_ID = process.env.PRINTFUL_CLIENT_ID;
-    const SECRET_KEY = process.env.PRINTFUL_SECRET_KEY;
+    // Bearer Token 사용
+    const BEARER_TOKEN = process.env.PRINTFUL_BEARER_TOKEN;
     
-    if (!CLIENT_ID || !SECRET_KEY) {
-      throw new Error('Printful credentials not configured');
+    if (!BEARER_TOKEN) {
+      throw new Error('Printful Bearer token not configured');
     }
-
-    // Basic Authentication 헤더 생성
-    const authHeader = Buffer.from(`${CLIENT_ID}:${SECRET_KEY}`).toString('base64');
     
     // Store Products API 호출 (실제 업로드된 제품들)
     const response = await fetch('https://api.printful.com/store/products', {
       method: 'GET',
       headers: {
-        'Authorization': `Basic ${authHeader}`,
+        'Authorization': `Bearer ${BEARER_TOKEN}`,
         'Content-Type': 'application/json',
       },
     });

@@ -10,12 +10,33 @@
     },
     "preview": {
       "distribution": "internal",
+      "autoIncrement": true,
       "android": {
-        "buildType": "apk"
+        "buildType": "app-bundle",
+        "developmentClient": false,
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://zudnmkyedvhdgftbwatt.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZG5ta3llZHZoZGdmdGJ3YXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0OTc5NjYsImV4cCI6MjA2MzA3Mzk2Nn0.FwQ2yqazywF3bGSN7N0I27ZC_nas32J6tKCoGeC3eeQ",
+        "EXPO_PUBLIC_APP_URL": "portfoliochatapp://auth",
+        "EXPO_PUBLIC_STORE_URL": "https://arldstore.com"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://zudnmkyedvhdgftbwatt.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZG5ta3llZHZoZGdmdGJ3YXR0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc0OTc5NjYsImV4cCI6MjA2MzA3Mzk2Nn0.FwQ2yqazywF3bGSN7N0I27ZC_nas32J6tKCoGeC3eeQ",
+        "EXPO_PUBLIC_APP_URL": "portfoliochatapp://auth",
+        "EXPO_PUBLIC_STORE_URL": "https://arldstore.com"
+      }
     }
   },
   "submit": {

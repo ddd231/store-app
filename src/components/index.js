@@ -4,23 +4,23 @@
  */
 
 // Common Components
-export { default as Button } from './common/Button';
-export { default as Header } from './common/Header';
-export { default as LoadingSpinner } from './common/LoadingSpinner';
-export { default as EmptyState } from './common/EmptyState';
-export { default as ErrorBoundary } from './common/ErrorBoundary';
-export { default as WorkCard } from './common/WorkCard';
+export { default as Button } from '../shared/components/Button';
+export { default as Header } from '../shared/components/Header';
+export { default as LoadingSpinner } from '../shared/components/LoadingSpinner';
+export { default as EmptyState } from '../shared/components/EmptyState';
+export { default as ErrorBoundary } from '../shared/components/ErrorBoundary';
+export { default as WorkCard } from '../shared/components/WorkCard';
 
 // Layout Components
-export { default as Screen } from './layout/Screen';
+export { default as Screen } from '../shared/components/Screen';
 
-// Auth Components
-export { default as LoginForm } from './auth/LoginForm';
-export { default as SignupForm } from './auth/SignupForm';
+// Auth Components - features 폴더에서 import
+export { default as LoginForm } from '../features/auth/components/LoginForm';
+export { default as SignupForm } from '../features/auth/components/SignupForm';
 
 // Legacy Components (기존 컴포넌트들 - 점진적으로 마이그레이션)
 export { default as QRCodeModal } from './QRCodeModal';
 export { default as HomeMenu } from './HomeMenu';
-export { default as FileUploadButton } from './FileUploadButton';
-export { default as MessageReply } from './MessageReply';
+export { default as FileUploadButton } from '../shared/components/FileUploadButton';
+export { default as MessageReply } from '../features/chat/components/MessageReply';
 export { default as SupabaseTest } from './SupabaseTest';

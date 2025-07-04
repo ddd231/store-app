@@ -2,30 +2,59 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { theme } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { checkPremiumAccess } from '../utils/premiumUtils';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../shared';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../features/auth';
+import { useFocusEffect } from '@react-navigation/native';
 
-export default function ViewHistoryScreen({ navigation }) {
+function ViewHistoryScreen({ navigation, route }) {
+  const { t } = useLanguage();
+  const { user } = useAuth();
   const [viewHistory, setViewHistory] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAccess();
-  }, []);
+  // 화면이 focus될 때마다 프리미엄 상태 확인
+  useFocusEffect(
+    React.useCallback(function() {
+      checkAccess();
+    }, [])
+  );
 
-  const checkAccess = async () => {
-    // const hasAccess = await checkPremiumAccess(navigation, '봤던 기록 보기');
-    // if (hasAccess) {
-    //   loadViewHistory();
-    // } else {
-    //   navigation.goBack();
-    // }
-    loadViewHistory(); // 임시로 모든 사용자 접근 가능
+  // 프리미엄 상태 업데이트 감지
+  useEffect(function() {
+    if (route.params?.premiumUpdated) {
+      checkAccess();
+    }
+  }, [route.params?.premiumUpdated]);
+
+  async function checkAccess() {
+    try {
+      // useAuth의 전역 user 상태 사용 (최신 프로필 정보 포함)
+      if (!user) {
+        navigation.goBack();
+        return;
+      }
+
+      // 프리미엄 또는 관리자 확인
+      const isPremium = user?.user_profiles?.is_premium;
+      const isAdmin = user?.user_profiles?.is_admin;
+
+      // 관리자가 아니고 프리미엄이 아닌 경우 접근 차단
+      if (!isAdmin && !isPremium) {
+        navigation.navigate('Upgrade');
+        return;
+      }
+
+      loadViewHistory();
+    } catch (error) {
+      console.error('접근 권한 확인 오류:', error);
+      navigation.goBack();
+    }
   };
 
-  const loadViewHistory = async () => {
+  async function loadViewHistory() {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // useAuth의 전역 user 상태 사용
       if (!user) {
         setLoading(false);
         return;
@@ -40,7 +69,7 @@ export default function ViewHistoryScreen({ navigation }) {
 
       if (error) {
         console.error('봤던 기록 로드 오류:', error);
-        Alert.alert('오류', '기록을 불러오는데 실패했습니다.');
+        Alert.alert(t('error'), t('loadHistoryFailed'));
       } else {
         setViewHistory(data || []);
       }
@@ -51,10 +80,11 @@ export default function ViewHistoryScreen({ navigation }) {
     }
   };
 
-  const renderHistoryItem = ({ item }) => (
-    <TouchableOpacity 
+  function renderHistoryItem({ item }) {
+    return (
+      <TouchableOpacity 
       style={styles.historyItem}
-      onPress={() => navigation.navigate('WorkDetail', { workId: item.work_id })}
+      onPress={function() { navigation.navigate('WorkDetail', { workId: item.work_id }); }}
     >
       <View style={styles.itemContent}>
         <Ionicons 
@@ -75,18 +105,19 @@ export default function ViewHistoryScreen({ navigation }) {
       </View>
       <Ionicons name="chevron-forward" size={20} color={theme.colors.text.secondary} />
     </TouchableOpacity>
-  );
+    );
+  }
 
-  const clearHistory = () => {
+  function clearHistory() {
     Alert.alert(
-      '기록 삭제',
-      '모든 봤던 기록을 삭제하시겠습니까?',
+      t('deleteHistory'),
+      t('confirmDeleteAllHistory'),
       [
-        { text: '취소', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: '삭제',
+          text: t('delete'),
           style: 'destructive',
-          onPress: async () => {
+          onPress: async function() {
             try {
               const { data: { user } } = await supabase.auth.getUser();
               if (!user) return;
@@ -97,14 +128,14 @@ export default function ViewHistoryScreen({ navigation }) {
                 .eq('user_id', user.id);
 
               if (error) {
-                Alert.alert('오류', '기록 삭제에 실패했습니다.');
+                Alert.alert(t('error'), t('deleteHistoryFailed'));
               } else {
                 setViewHistory([]);
-                Alert.alert('완료', '봤던 기록이 모두 삭제되었습니다.');
+                Alert.alert(t('done'), t('allHistoryDeleted'));
               }
             } catch (error) {
               console.error('기록 삭제 오류:', error);
-              Alert.alert('오류', '기록 삭제에 실패했습니다.');
+              Alert.alert(t('error'), t('deleteHistoryFailed'));
             }
           }
         }
@@ -116,10 +147,10 @@ export default function ViewHistoryScreen({ navigation }) {
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={function() { navigation.goBack(); }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>기록</Text>
+        <Text style={styles.headerTitle}>{t('history')}</Text>
         <TouchableOpacity onPress={clearHistory}>
           <Ionicons name="trash-outline" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
@@ -127,7 +158,7 @@ export default function ViewHistoryScreen({ navigation }) {
 
       {/* 프리미엄 뱃지 */}
       <View style={styles.premiumBadge}>
-        <Text style={styles.premiumText}>전문가 전용 기능</Text>
+        <Text style={styles.premiumText}>{t('expertOnlyFeature')}</Text>
       </View>
 
       {/* 기록 리스트 */}
@@ -139,15 +170,15 @@ export default function ViewHistoryScreen({ navigation }) {
         <FlatList
           data={viewHistory}
           renderItem={renderHistoryItem}
-          keyExtractor={item => item.id}
+          keyExtractor={function(item) { return item.id; }}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={function() { return <View style={styles.separator} />; }}
         />
       ) : (
         <View style={styles.emptyContainer}>
           <Ionicons name="eye-outline" size={60} color={theme.colors.text.secondary} />
-          <Text style={styles.emptyText}>아직 본 작품이 없습니다</Text>
-          <Text style={styles.emptySubtext}>작품을 감상하면 여기에 기록됩니다</Text>
+          <Text style={styles.emptyText}>{t('noViewedWorks')}</Text>
+          <Text style={styles.emptySubtext}>{t('worksWillBeRecorded')}</Text>
         </View>
       )}
     </View>
@@ -171,6 +202,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...theme.typography.heading,
+    fontSize: 22,
     fontWeight: '600',
   },
   premiumBadge: {
@@ -217,6 +249,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     ...theme.typography.body,
     fontWeight: '600',
+    color: '#000000',
     marginRight: 13,
   },
   itemAuthor: {
@@ -258,3 +291,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+export default ViewHistoryScreen;

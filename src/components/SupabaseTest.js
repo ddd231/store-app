@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, Button, StyleSheet, ActivityIndicator } from 'react-native';
-import { testSupabaseConnection, listBuckets } from '../services/supabaseClient';
+import { testSupabaseConnection } from '../shared';
 
-const SupabaseTest = () => {
+export default function SupabaseTest() {
   const [connectionStatus, setConnectionStatus] = useState('아직 테스트하지 않음');
   const [buckets, setBuckets] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const testConnection = async () => {
+  async function testConnection() {
     setIsLoading(true);
     setConnectionStatus('테스트 중...');
     
@@ -25,17 +25,19 @@ const SupabaseTest = () => {
     }
   };
 
-  const fetchBuckets = async () => {
+  async function fetchBuckets() {
     setIsLoading(true);
     
     try {
-      const result = await listBuckets();
-      if (result.success) {
-        setBuckets(result.data);
-      } else {
-        console.error('버킷 가져오기 실패:', result.error);
-        setBuckets([]);
-      }
+      // listBuckets 함수가 없어서 주석 처리
+      // const result = await listBuckets();
+      // if (result.success) {
+      //   setBuckets(result.data);
+      // } else {
+      //   console.error('버킷 가져오기 실패:', result.error);
+      //   setBuckets([]);
+      // }
+      setBuckets([]);
     } catch (error) {
       console.error('버킷 가져오기 오류:', error.message);
       setBuckets([]);
@@ -72,11 +74,11 @@ const SupabaseTest = () => {
       {buckets.length > 0 ? (
         <View style={styles.bucketContainer}>
           <Text style={styles.label}>버킷 목록:</Text>
-          {buckets.map((bucket, index) => (
+          {buckets.map(function(bucket, index) { return (
             <Text key={index} style={styles.bucketItem}>
               {bucket.name}
             </Text>
-          ))}
+          ); })}
         </View>
       ) : (
         <Text style={styles.bucketMessage}>
@@ -138,4 +140,4 @@ const styles = StyleSheet.create({
   }
 });
 
-export default SupabaseTest; 
+ 

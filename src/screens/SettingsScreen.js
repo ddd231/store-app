@@ -8,72 +8,111 @@ import {
   Switch,
   Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { checkPremiumAccess } from '../utils/premiumUtils';
-import notificationService from '../services/notificationService';
-import { useAuth } from '../hooks/useAuth';
+import { supabase, logger } from '../shared';
+import { useAuth } from '../features/auth/hooks/useAuth';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function SettingsScreen({ navigation }) {
   const { user } = useAuth();
+  const { t, currentLanguage, changeLanguage, getAvailableLanguages } = useLanguage();
   const [notifications, setNotifications] = useState(false); // 기본값 false로 변경
-  const [publicProfile, setPublicProfile] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [userCountry, setUserCountry] = useState('KR');
 
   // 알림 설정 불러오기
-  useEffect(() => {
+  useEffect(function() {
     loadNotificationSettings();
+    loadUserCountry();
   }, []);
 
-  const loadNotificationSettings = async () => {
+  async function loadUserCountry() {
     if (!user?.id) return;
     
-    const settings = await notificationService.getNotificationSettings(user.id);
-    setNotifications(settings.push_notifications_enabled);
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('country')
+        .eq('id', user.id)
+        .single();
+      
+      if (data?.country) {
+        setUserCountry(data.country);
+      }
+    } catch (error) {
+      console.error('국가 정보 로드 오류:', error);
+    }
+  };
+
+  async function loadNotificationSettings() {
+    try {
+      const saved = await AsyncStorage.getItem('notifications_enabled');
+      logger.log('AsyncStorage 알림 설정 로드:', saved);
+      setNotifications(saved === 'true' || saved === true);
+    } catch (error) {
+      console.error('알림 설정 로드 실패:', error);
+      setNotifications(false);
+    }
+  };
+
+
+  function getCurrentLanguageName() {
+    const languages = getAvailableLanguages();
+    const current = languages.find(function(lang) { return lang.code === currentLanguage; });
+    return current ? current.name : '한국어';
+  };
+
+  function getCurrentCountryName() {
+    const countries = [
+      { code: 'KR', name: '한국' },
+      { code: 'JP', name: '일본' },
+      { code: 'US', name: '미국' },
+    ];
+    const current = countries.find(function(country) { return country.code === userCountry; });
+    return current ? current.name : '한국';
   };
 
   const settingsSections = [
     {
-      title: '계정',
+      title: t('account') || '계정',
       items: [
-        { id: 'profile', title: '프로필 편집', icon: 'person-outline', action: 'navigate' },
-        { id: 'password', title: '비밀번호 변경', icon: 'lock-closed-outline', action: 'navigate' },
-        { id: 'delete_account', title: '계정 삭제', icon: 'trash-outline', action: 'navigate' },
+        { id: 'profile', title: t('profileEdit') || '프로필 편집', icon: 'person-outline', action: 'navigate' },
+        { id: 'password', title: t('passwordChange') || '비밀번호 변경', icon: 'lock-closed-outline', action: 'navigate' },
       ]
     },
     {
-      title: '알림',
+      title: t('notifications') || '알림',
       items: [
-        { id: 'notifications', title: '푸시 알림', icon: 'notifications-outline', action: 'toggle', value: notifications },
-        { id: 'email_notifications', title: '이메일 알림', icon: 'mail-outline', action: 'navigate' },
+        { id: 'notifications', title: t('pushNotifications') || '푸시 알림', icon: 'notifications-outline', action: 'toggle', value: notifications },
       ]
     },
     {
-      title: '개인정보',
+      title: t('privacy') || '개인정보',
       items: [
-        { id: 'public_profile', title: '공개 프로필', icon: 'eye-outline', action: 'toggle', value: publicProfile },
-        { id: 'hidden_users', title: '숨긴사용자 관리', icon: 'eye-off-outline', action: 'navigate' },
-        { id: 'data', title: '데이터 관리', icon: 'server-outline', action: 'navigate' },
+        { id: 'hidden_users', title: t('hiddenUsers') || '숨긴사용자 관리', icon: 'eye-off-outline', action: 'navigate' },
+        { id: 'data', title: t('dataManagement') || '데이터 관리', icon: 'server-outline', action: 'navigate' },
       ]
     },
     {
-      title: '일반',
+      title: t('general') || '일반',
       items: [
-        { id: 'language', title: '언어', icon: 'language-outline', action: 'navigate', subtitle: '한국어' },
+        { id: 'language', title: t('language') || '언어', icon: 'language-outline', action: 'language', subtitle: getCurrentLanguageName() },
       ]
     },
     {
-      title: '정보',
+      title: t('info') || '정보',
       items: [
-        { id: 'about', title: '앱 정보', icon: 'information-circle-outline', action: 'navigate' },
-        { id: 'terms', title: '이용약관', icon: 'document-text-outline', action: 'navigate' },
-        { id: 'privacy', title: '개인정보처리방침', icon: 'shield-checkmark-outline', action: 'navigate' },
-        { id: 'help', title: '도움말', icon: 'help-circle-outline', action: 'navigate' },
+        { id: 'about', title: t('about') || '앱 정보', icon: 'information-circle-outline', action: 'navigate' },
+        { id: 'terms', title: t('terms') || '이용약관', icon: 'document-text-outline', action: 'navigate' },
+        { id: 'privacy_policy', title: t('privacyPolicy') || '개인정보처리방침', icon: 'shield-checkmark-outline', action: 'navigate' },
+        { id: 'delete_account', title: t('deleteAccount') || '계정 삭제', icon: 'trash-outline', action: 'navigate' },
       ]
     }
   ];
 
-  const handleToggle = async (id, currentValue) => {
+  async function handleToggle(id, currentValue) {
     switch(id) {
       case 'notifications':
         setLoading(true);
@@ -94,24 +133,28 @@ export default function SettingsScreen({ navigation }) {
             }
           }
           
-          // 설정 저장
-          if (user?.id) {
-            const success = await notificationService.updateNotificationSettings(user.id, {
-              push_notifications_enabled: newValue
-            });
+          // AsyncStorage에 설정 저장
+          try {
+            await AsyncStorage.setItem('notifications_enabled', newValue.toString());
+            setNotifications(newValue);
+            logger.log('AsyncStorage 알림 설정 저장 성공:', newValue);
             
-            if (success) {
-              setNotifications(newValue);
-              
-              // 테스트 알림 전송
-              if (newValue) {
-                await notificationService.scheduleLocalNotification(
-                  '알림 활성화됨',
-                  'ARLD 알림이 활성화되었습니다.',
-                  { type: 'test' }
-                );
-              }
+            // 푸시 토큰 저장
+            if (newValue && user?.id) {
+              await notificationService.savePushToken(user.id);
             }
+            
+            // 테스트 알림 전송
+            if (newValue) {
+              await notificationService.scheduleLocalNotification(
+                '알림 활성화됨',
+                'ARLD 알림이 활성화되었습니다.',
+                { type: 'test' }
+              );
+            }
+          } catch (storageError) {
+            console.error('AsyncStorage 저장 실패:', storageError);
+            Alert.alert('오류', '알림 설정을 변경할 수 없습니다.');
           }
         } catch (error) {
           Alert.alert('오류', '알림 설정 변경에 실패했습니다.');
@@ -120,25 +163,93 @@ export default function SettingsScreen({ navigation }) {
         }
         break;
         
-      case 'public_profile':
-        setPublicProfile(!currentValue);
-        break;
     }
   };
 
-  const handleNavigate = async (id) => {
+  function handleLanguageSelect() {
+    const languages = getAvailableLanguages();
+    const options = languages.map(function(lang) { return ({
+      text: lang.name,
+      onPress: function() { changeLanguage(lang.code); }
+    }); });
+    
+    options.push({ text: t('cancel') || '취소', style: 'cancel' });
+    
+    Alert.alert(
+      t('selectLanguage') || '언어 선택',
+      t('selectLanguageDescription') || '사용할 언어를 선택하세요',
+      options
+    );
+  };
+
+  function handleCountrySelect() {
+    const countries = [
+      { code: 'KR', name: '한국' },
+      { code: 'JP', name: '일본' },
+      { code: 'US', name: '미국' },
+    ];
+    
+    const options = countries.map(function(country) { return ({
+      text: country.name,
+      onPress: function() { changeCountry(country.code); }
+    }); });
+    
+    options.push({ text: '취소', style: 'cancel' });
+    
+    Alert.alert(
+      '국가 선택',
+      '사용할 국가를 선택하세요',
+      options
+    );
+  };
+
+  async function changeCountry(newCountry) {
+    if (!user?.id || newCountry === userCountry) return;
+    
+    try {
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ country: newCountry })
+        .eq('id', user.id);
+      
+      if (error) throw error;
+      
+      setUserCountry(newCountry);
+      Alert.alert('완료', '국가가 변경되었습니다.');
+    } catch (error) {
+      console.error('국가 변경 오류:', error);
+      Alert.alert('오류', '국가 변경에 실패했습니다.');
+    }
+  };
+
+  async function handleNavigate(id) {
     switch(id) {
+      case 'profile':
+        navigation.navigate('ProfileEdit');
+        break;
+      case 'password':
+        navigation.navigate('PasswordReset');
+        break;
       case 'hidden_users':
-        const hasAccess = await checkPremiumAccess(navigation, '사용자 숨김 기능');
-        if (hasAccess) {
+        const isPremium = user?.user_profiles?.is_premium;
+        const isAdmin = user?.user_profiles?.is_admin;
+        if (isPremium || isAdmin) {
           navigation.navigate('HiddenUsers');
+        } else {
+          navigation.navigate('Upgrade');
         }
         break;
       case 'delete_account':
         navigation.navigate('AccountDeletion');
         break;
+      case 'terms':
+        navigation.navigate('TermsOfService');
+        break;
+      case 'privacy_policy':
+        navigation.navigate('PrivacyPolicy');
+        break;
       default:
-        Alert.alert('알림', '준비 중입니다.');
+        Alert.alert(t('notification') || '알림', t('comingSoon') || '준비 중입니다.');
         break;
     }
   };
@@ -148,69 +259,77 @@ export default function SettingsScreen({ navigation }) {
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity 
-          onPress={() => navigation.goBack()}
+          onPress={function() { navigation.goBack(); }}
           style={styles.backButton}
         >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
+          <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>설정</Text>
+        <Text style={styles.headerTitle}>{t('settings') || '설정'}</Text>
         <View style={styles.headerRight} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {settingsSections.map((section, sectionIndex) => (
-          <View key={sectionIndex} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            
-            {section.items.map((item, itemIndex) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[
-                  styles.settingItem,
-                  itemIndex === section.items.length - 1 && styles.lastItem
-                ]}
-                onPress={() => {
-                  if (item.action === 'navigate') {
-                    handleNavigate(item.id);
-                  }
-                }}
-                disabled={item.action === 'toggle'}
-              >
-                <View style={styles.settingLeft}>
-                  <Ionicons name={item.icon} size={24} color={theme.colors.text.primary} />
-                  <View style={styles.textContainer}>
-                    <Text style={styles.settingText}>{item.title}</Text>
-                    {item.subtitle && (
-                      <Text style={styles.settingSubtext}>{item.subtitle}</Text>
+        {settingsSections.map(function(section, sectionIndex) {
+          return (
+            <View key={sectionIndex} style={styles.section}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              
+              {section.items.map(function(item, itemIndex) {
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.settingItem,
+                      itemIndex === section.items.length - 1 && styles.lastItem
+                    ]}
+                    onPress={function() {
+                      if (item.action === 'navigate') {
+                        handleNavigate(item.id);
+                      } else if (item.action === 'language') {
+                        handleLanguageSelect();
+                      } else if (item.action === 'country') {
+                        handleCountrySelect();
+                      }
+                    }}
+                    disabled={item.action === 'toggle'}
+                  >
+                    <View style={styles.settingLeft}>
+                      <Ionicons name={item.icon} size={24} color="#000000" />
+                      <View style={styles.textContainer}>
+                        <Text style={styles.settingText}>{item.title}</Text>
+                        {item.subtitle && (
+                          <Text style={styles.settingSubtext}>{item.subtitle}</Text>
+                        )}
+                      </View>
+                    </View>
+                    
+                    {item.action === 'toggle' ? (
+                      <Switch
+                        value={item.value}
+                        onValueChange={function() { handleToggle(item.id, item.value); }}
+                        trackColor={{ false: '#767577', true: theme.colors.primary }}
+                        thumbColor={'white'}
+                      />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color={theme.colors.text.secondary} />
                     )}
-                  </View>
-                </View>
-                
-                {item.action === 'toggle' ? (
-                  <Switch
-                    value={item.value}
-                    onValueChange={() => handleToggle(item.id, item.value)}
-                    trackColor={{ false: '#767577', true: theme.colors.primary }}
-                    thumbColor={'white'}
-                  />
-                ) : (
-                  <Ionicons name="chevron-forward" size={20} color={theme.colors.text.secondary} />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        ))}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          );
+        })}
 
         {/* 로그아웃 버튼 */}
         <TouchableOpacity 
           style={styles.logoutButton}
-          onPress={() => {
+          onPress={function() {
             Alert.alert(
-              '로그아웃',
-              '정말 로그아웃하시겠습니까?',
+              t('logout') || '로그아웃',
+              t('logoutConfirm') || '정말 로그아웃하시겠습니까?',
               [
-                { text: '취소', style: 'cancel' },
-                { text: '로그아웃', style: 'destructive', onPress: () => {
+                { text: t('cancel') || '취소', style: 'cancel' },
+                { text: t('logout') || '로그아웃', style: 'destructive', onPress: function() {
                   // 로그아웃 로직
                   navigation.navigate('Login');
                 }}
@@ -218,8 +337,9 @@ export default function SettingsScreen({ navigation }) {
             );
           }}
         >
-          <Text style={styles.logoutText}>로그아웃</Text>
+          <Text style={styles.logoutText}>{t('logout') || '로그아웃'}</Text>
         </TouchableOpacity>
+
 
         <View style={styles.bottomSpace} />
       </ScrollView>
@@ -247,7 +367,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.text.primary,
+    color: '#000000',
   },
   headerRight: {
     width: 32,
@@ -291,7 +411,7 @@ const styles = StyleSheet.create({
   settingText: {
     ...theme.typography.body,
     fontSize: 14,
-    color: theme.colors.text.primary,
+    color: '#000000',
   },
   settingSubtext: {
     ...theme.typography.caption,
@@ -315,3 +435,4 @@ const styles = StyleSheet.create({
     height: 50,
   },
 });
+

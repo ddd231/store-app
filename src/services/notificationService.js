@@ -11,15 +11,16 @@ import {
   setBadgeCountAsync
 } from 'expo-notifications';
 import { isDevice } from 'expo-device';
-import { supabase } from './supabaseClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '../shared';
 
 // 알림 기본 설정
 setNotificationHandler({
-  handleNotification: async () => ({
+  handleNotification: async function() { return {
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
-  }),
+  }; },
 });
 
 class NotificationService {
@@ -33,20 +34,16 @@ class NotificationService {
     if (!isDevice) {
       return false;
     }
-
     const { status: existingStatus } = await getPermissionsAsync();
     let finalStatus = existingStatus;
-
     if (existingStatus !== 'granted') {
       const { status } = await requestPermissionsAsync();
       finalStatus = status;
     }
-
     if (finalStatus !== 'granted') {
       Alert.alert('알림 권한', '알림을 받으려면 설정에서 권한을 허용해주세요.');
       return false;
     }
-
     return true;
   }
 
@@ -55,7 +52,6 @@ class NotificationService {
     if (!isDevice) {
       return null;
     }
-
     try {
       const token = await getExpoPushTokenAsync({
         projectId: 'your-project-id' // Expo 프로젝트 ID로 교체 필요
@@ -72,13 +68,11 @@ class NotificationService {
     try {
       const pushToken = await this.getPushToken();
       if (!pushToken) return;
-
       // user_profiles 테이블에 푸시 토큰 저장
       const { error } = await supabase
         .from('user_profiles')
         .update({ push_token: pushToken })
         .eq('id', userId);
-
       if (error) {
         console.error('푸시 토큰 저장 실패:', error);
       }
@@ -130,13 +124,11 @@ class NotificationService {
   // 알림 리스너 설정
   setupNotificationListeners(navigation) {
     // 알림 수신 리스너
-    this.notificationListener = addNotificationReceivedListener(notification => {
+    this.notificationListener = addNotificationReceivedListener(function(notification) {
     });
-
     // 알림 클릭 리스너
-    this.responseListener = addNotificationResponseReceivedListener(response => {
+    this.responseListener = addNotificationResponseReceivedListener(function(response) {
       const data = response.notification.request.content.data;
-      
       // 알림 타입에 따라 화면 이동
       switch (data.type) {
         case 'message':
@@ -169,35 +161,29 @@ class NotificationService {
     }
   }
 
-  // 알림 설정 상태 가져오기
-  async getNotificationSettings(userId) {
+  // 알림 설정 상태 가져오기 (AsyncStorage)
+  async getNotificationSettings() {
     try {
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('push_notifications_enabled, email_notifications_enabled')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-      return data || { push_notifications_enabled: false, email_notifications_enabled: false }; // 기본값 false
+      const enabled = await AsyncStorage.getItem('notifications_enabled');
+      return { 
+        push_notifications_enabled: enabled === 'true', 
+        email_notifications_enabled: false 
+      };
     } catch (error) {
-      console.error('알림 설정 가져오기 실패:', error);
-      return { push_notifications_enabled: false, email_notifications_enabled: false }; // 기본값 false
+      console.error('AsyncStorage 알림 설정 가져오기 실패:', error);
+      return { push_notifications_enabled: false, email_notifications_enabled: false };
     }
   }
 
-  // 알림 설정 업데이트
+  // 알림 설정 업데이트 (AsyncStorage)
   async updateNotificationSettings(userId, settings) {
     try {
-      const { error } = await supabase
-        .from('user_profiles')
-        .update(settings)
-        .eq('id', userId);
-
-      if (error) throw error;
+      if (settings.push_notifications_enabled !== undefined) {
+        await AsyncStorage.setItem('notifications_enabled', settings.push_notifications_enabled.toString());
+      }
       return true;
     } catch (error) {
-      console.error('알림 설정 업데이트 실패:', error);
+      console.error('AsyncStorage 알림 설정 업데이트 실패:', error);
       return false;
     }
   }

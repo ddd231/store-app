@@ -1,34 +1,65 @@
 import 'react-native-gesture-handler';
+import './hermesPolyfill'; // Hermes 호환성 polyfill
 import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, StyleSheet, Platform, Text, Alert } from 'react-native';
-
-// 웹에서 pointerEvents 경고 억제 (간단한 방법)
-if (Platform.OS === 'web' && typeof console !== 'undefined') {
-  const originalWarn = console.warn;
-  console.warn = (...args) => {
-    if (args[0] && typeof args[0] === 'string' && 
-        (args[0].includes('pointerEvents is deprecated') || 
-         args[0].includes('Use style.pointerEvents'))) {
-      return; // pointerEvents 경고 무시
-    }
-    originalWarn.apply(console, args);
-  };
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+let NavigationBar;
+try {
+  NavigationBar = require('expo-navigation-bar');
+} catch (error) {
+  console.log('[App] expo-navigation-bar 모듈 로드 실패:', error);
 }
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+// pointerEvents 경고는 LogBox로 처리하는 것이 더 안전함
 
 // Screens
-import LoginScreen from './src/screens/LoginScreen';
-import PasswordResetScreen from './src/screens/PasswordResetScreen';
+import LoginScreen from './src/features/auth/screens/LoginScreen';
+import PasswordResetScreen from './src/features/auth/screens/PasswordResetScreen';
 import TabNavigator from './src/navigation/TabNavigator';
 import StoreScreen from './src/screens/StoreScreen';
 
-// Hooks
-import { useAuth } from './src/hooks/useAuth';
+// Zustand Store
+import { useAuthStore } from './src/store/authStore';
+
+// React Query
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './src/shared/services/queryClient';
 
 // Services
 import notificationService from './src/services/notificationService';
+
+// Contexts
+import { LanguageProvider } from './src/contexts/LanguageContext';
+
+// IAP Context - Expo Go에서는 비활성화
+let withIAPContext;
+try {
+  if (Platform.OS !== 'web' && !__DEV__) {
+    withIAPContext = require('react-native-iap').withIAPContext;
+  } else {
+    // Expo Go나 개발 환경에서는 IAP 비활성화
+    withIAPContext = function(Component) { return Component; };
+  }
+} catch (error) {
+  // IAP 모듈 로드 실패 시 fallback
+  withIAPContext = function(Component) { return Component; };
+}
+
+// AdMob 초기화 (모바일에서만)
+let mobileAds;
+try {
+  if (Platform.OS !== 'web') {
+    const adModule = require('react-native-google-mobile-ads');
+    mobileAds = adModule?.default || adModule;
+  }
+} catch (error) {
+  // AdMob 모듈 로드 실패 시 무시하고 계속 진행
+  mobileAds = null;
+}
 
 const Stack = createStackNavigator();
 
@@ -44,8 +75,12 @@ function AppStack() {
   return <TabNavigator />;
 }
 
-export default function App() {
-  console.log('[App] App 컴포넌트 렌더링 시작');
+function App() {
+  if (__DEV__) {
+    console.log('[App] App 컴포넌트 렌더링 시작');
+  }
+  
+  const [isAppReady, setIsAppReady] = useState(false);
   
   const [expiredLinkDetected, setExpiredLinkDetected] = useState(false);
   
@@ -56,11 +91,15 @@ export default function App() {
       const isReset = hash.includes('type=recovery');
       const hasError = hash.includes('error=access_denied') || hash.includes('error_code=otp_expired');
       
-      console.log('[App] 비밀번호 재설정 페이지 확인:', isReset, 'hasError:', hasError, hash);
+      if (__DEV__) {
+        console.log('[App] 비밀번호 재설정 페이지 확인:', isReset, 'hasError:', hasError, hash);
+      }
       
       // 오류가 있으면 URL 정리하고 일반 모드로
       if (hasError) {
-        console.log('[App] 만료된 링크 감지 - URL 정리 후 일반 모드로 전환');
+        if (__DEV__) {
+          console.log('[App] 만료된 링크 감지 - URL 정리 후 일반 모드로 전환');
+        }
         if (window.history && window.history.replaceState) {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -70,47 +109,125 @@ export default function App() {
       
       return isReset;
     }
-    console.log('[App] 일반 앱 모드');
+    if (__DEV__) {
+      console.log('[App] 일반 앱 모드');
+    }
     return false;
   };
 
   // 비밀번호 재설정 페이지면 useAuth를 사용하지 않고 바로 렌더링
   if (isPasswordResetPage()) {
-    console.log('[App] 비밀번호 재설정 페이지 렌더링');
+    if (__DEV__) {
+      console.log('[App] 비밀번호 재설정 페이지 렌더링');
+    }
     return (
-      <NavigationContainer>
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="PasswordReset" component={PasswordResetScreen} />
-        </Stack.Navigator>
-        <StatusBar style="light" />
-      </NavigationContainer>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <NavigationContainer>
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="PasswordReset" component={PasswordResetScreen} />
+          </Stack.Navigator>
+          <StatusBar style="light" />
+        </NavigationContainer>
+      </GestureHandlerRootView>
     );
   }
 
-  // 모바일에서만 useAuth 호출
-  const { user, loading } = useAuth();
+  // Zustand store 사용
+  const { user, loading, initialize, setupAuthListener } = useAuthStore();
   
-  const [authUser, setAuthUser] = useState(null);
-
   useEffect(() => {
-    console.log('[App] user 변경됨:', user?.id);
-    if (user) {
-      setAuthUser(user);
-    }
-  }, [user]);
-
-  const handleLoginSuccess = async (userData) => {
-    console.log('[App] 로그인 성공:', userData?.id);
-    setAuthUser(userData);
+    // 인증 초기화
+    initialize();
     
-    // 로그인 성공 시에는 알림 권한 요청하지 않음 (사용자가 설정에서 켜야 함)
-    // if (userData?.id) {
-    //   const hasPermission = await notificationService.requestPermissions();
-    //   if (hasPermission) {
-    //     await notificationService.savePushToken(userData.id);
-    //   }
-    // }
-  };
+    // 인증 상태 변경 리스너 설정
+    const subscription = setupAuthListener();
+    
+    return () => {
+      subscription?.unsubscribe();
+    };
+  }, [initialize, setupAuthListener]);
+
+  // 앱 초기화 및 로고 표시
+  useEffect(() => {
+    const initializeApp = async () => {
+      // 실제 로딩 작업들
+      if (Platform.OS !== 'web') {
+        // AdMob 초기화 대기
+        if (mobileAds && typeof mobileAds.initialize === 'function') {
+          try {
+            await mobileAds.initialize();
+          } catch (error) {
+            console.log('AdMob 초기화 실패:', error);
+          }
+        }
+        
+        // NavigationBar 설정 대기
+        if (NavigationBar) {
+          try {
+            await NavigationBar.setBackgroundColorAsync('#F5F1E8');
+            await NavigationBar.setButtonStyleAsync('dark');
+          } catch (error) {
+            console.log('NavigationBar 설정 실패:', error);
+          }
+        }
+      }
+      
+      // 최소 2초간 로고 표시
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      setIsAppReady(true);
+    };
+    
+    initializeApp();
+  }, []);
+
+  // AdMob 초기화 및 NavigationBar 색상 설정
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      // AdMob 초기화
+      if (mobileAds && typeof mobileAds.initialize === 'function') {
+        try {
+          mobileAds.initialize().then(() => {
+            if (__DEV__) {
+              console.log('[App] AdMob SDK 초기화 완료');
+            }
+          }).catch((error) => {
+            if (__DEV__) {
+              console.log('[App] AdMob SDK 초기화 실패:', error);
+            }
+          });
+        } catch (error) {
+          if (__DEV__) {
+            console.log('[App] AdMob 초기화 호출 실패:', error);
+          }
+        }
+      }
+      
+      // NavigationBar 색상 설정
+      if (Platform.OS === 'android' && NavigationBar) {
+        try {
+          if (NavigationBar.setBackgroundColorAsync) {
+            NavigationBar.setBackgroundColorAsync('#F5F1E8').catch((error) => {
+              if (__DEV__) {
+                console.log('[App] NavigationBar 배경색 설정 실패:', error);
+              }
+            });
+          }
+          if (NavigationBar.setButtonStyleAsync) {
+            NavigationBar.setButtonStyleAsync('dark').catch((error) => {
+              if (__DEV__) {
+                console.log('[App] NavigationBar 버튼 스타일 설정 실패:', error);
+              }
+            });
+          }
+        } catch (error) {
+          if (__DEV__) {
+            console.log('[App] NavigationBar API 호출 실패:', error);
+          }
+        }
+      }
+    }
+  }, []);
+
 
   // 만료된 링크 알림
   useEffect(() => {
@@ -125,8 +242,19 @@ export default function App() {
     }
   }, [expiredLinkDetected]);
 
+  // 앱 시작 시 로고 표시
+  if (!isAppReady) {
+    return (
+      <View style={styles.splashContainer}>
+        <Text style={styles.splashText}>ARLD</Text>
+      </View>
+    );
+  }
+
   if (loading) {
-    console.log('[App] 로딩 중...');
+    if (__DEV__) {
+      console.log('[App] 로딩 중...');
+    }
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -147,20 +275,24 @@ export default function App() {
 
   // 모바일 앱은 기존 로직 그대로
   return (
-    <NavigationContainer>
-      {authUser ? (
-        <AppStack />
-      ) : (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login">
-            {(props) => (
-              <LoginScreen {...props} onLoginSuccess={handleLoginSuccess} />
-            )}
-          </Stack.Screen>
-        </Stack.Navigator>
-      )}
-      <StatusBar style="light" />
-    </NavigationContainer>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <SafeAreaProvider>
+            <NavigationContainer>
+              {user ? (
+                <AppStack />
+              ) : (
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="Login" component={LoginScreen} />
+                </Stack.Navigator>
+              )}
+              <StatusBar style="light" />
+            </NavigationContainer>
+          </SafeAreaProvider>
+        </LanguageProvider>
+      </QueryClientProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -171,4 +303,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f5f5f5',
   },
+  splashContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5F1E8',
+  },
+  splashText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#000000',
+    letterSpacing: -1,
+    fontFamily: Platform.OS === 'ios' ? 'Times New Roman' : 'serif',
+    marginTop: -50,
+  },
 });
+
+export default withIAPContext(App);

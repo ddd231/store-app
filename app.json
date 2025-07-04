@@ -4,25 +4,53 @@
     "slug": "portfolio-chat-app",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "jsEngine": "hermes",
+    "scheme": "portfoliochatapp",
     "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#F5F1E8"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.portfoliochatapp"
+      "bundleIdentifier": "com.anonymous.portfoliochatapp",
+      "jsEngine": "hermes"
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "package": "com.anonymous.portfoliochatapp",
-      "navigationBar": {
-        "backgroundColor": "#f5f2ed"
-      }
+      "jsEngine": "hermes",
+      "permissions": [
+        "com.android.vending.BILLING",
+        "com.google.android.gms.permission.AD_ID",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.WAKE_LOCK"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "portfoliochatapp"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#F5F1E8",
+      "barStyle": "dark-content"
     },
     "web": {
       "bundler": "metro",
@@ -34,6 +62,34 @@
       "eas": {
         "projectId": "c7ae9ecf-1b7b-4340-90e0-178d39dd7c3e"
       }
-    }
+    },
+    "plugins": [
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3406933300576517~6598198326",
+          "iosAppId": "ca-app-pub-3406933300576517~6598198326"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "enableProguardInReleaseBuilds": true,
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "extraProguardRules": "-keep class com.facebook.** {*;}\n-keep class com.facebook.react.** {*;}\n-keep class com.android.billingclient.** {*;}\n-keep class com.android.vending.billing.** {*;}\n-keep class com.swmansion.** {*;}\n-keep class io.expo.** {*;}\n-keep class expo.modules.** {*;}\n-keep class com.anonymous.portfoliochatapp.** {*;}\n-keep class com.dooboolab.** {*;}\n-keep class org.reactnative.** {*;}\n-keep class com.reactnativeiap.** {*;}\n-keepclassmembers class * {\n    @expo.modules.core.ExpoMethod *;\n    @expo.modules.core.ExpoProperty *;\n}\n-keepclassmembers class com.dooboolab.** {\n    public *;\n}\n-keepclassmembers class org.reactnative.** {\n    public *;\n}\n-dontwarn com.android.billingclient.**\n-dontwarn io.expo.**\n-dontwarn expo.modules.**\n-dontwarn com.dooboolab.**\n-dontwarn org.reactnative.**"
+          }
+        }
+      ],
+      [
+        "react-native-iap",
+        {
+          "androidPlayStore": "play"
+        }
+      ],
+      "expo-localization"
+    ]
   }
 }

@@ -2,19 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, Alert, Platform, Linking } from 'react-native';
 import { theme } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../shared';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function HomeMenu({ visible, onClose, navigation }) {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  
+  const { t } = useLanguage();
 
-  useEffect(() => {
+  useEffect(function() {
     if (visible) {
       loadUserData();
     }
   }, [visible]);
 
-  const loadUserData = async () => {
+  async function loadUserData() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -36,16 +39,16 @@ export default function HomeMenu({ visible, onClose, navigation }) {
     }
   };
 
-  const handleLogout = async () => {
+  async function handleLogout() {
     Alert.alert(
-      '로그아웃',
-      '정말 로그아웃하시겠습니까?',
+      t('logout'),
+      t('logoutConfirm'),
       [
-        { text: '취소', style: 'cancel' },
+        { text: t('cancel'), style: 'cancel' },
         {
-          text: '로그아웃',
+          text: t('logout'),
           style: 'destructive',
-          onPress: async () => {
+          onPress: async function() {
             await supabase.auth.signOut();
             onClose();
             navigation.navigate('Login');
@@ -56,14 +59,15 @@ export default function HomeMenu({ visible, onClose, navigation }) {
   };
 
   const menuItems = [
-    { id: 'view_history', title: '기록', icon: 'time-outline', screen: 'ViewHistory' },
-    { id: 'bookmarks', title: '북마크', icon: 'bookmark-outline', screen: 'Bookmarks' },
-    { id: 'settings', title: '설정', icon: 'settings-outline', screen: 'Settings' },
-    { id: 'help', title: '도움말', icon: 'help-circle-outline' },
-    { id: 'store', title: '스토어', icon: 'bag-outline', screen: 'Store' },
+    // { id: 'upload', title: t('uploadWork'), icon: 'cloud-upload-outline', screen: 'WorkTypeSelect' },
+    { id: 'view_history', title: t('history'), icon: 'time-outline', screen: 'ViewHistory' },
+    { id: 'bookmarks', title: t('bookmarks'), icon: 'bookmark-outline', screen: 'Bookmarks' },
+    { id: 'settings', title: t('settings'), icon: 'settings-outline', screen: 'Settings' },
+    { id: 'help', title: t('help'), icon: 'help-circle-outline' },
+    // { id: 'store', title: t('store'), icon: 'bag-outline', screen: 'Store' },
   ];
 
-  const handleMenuPress = (item) => {
+  async function handleMenuPress(item) {
     if (item.id === 'store') {
       // arld store는 웹으로 이동
       const storeUrl = process.env.EXPO_PUBLIC_STORE_URL || 'https://arldstore.netlify.app';
@@ -74,17 +78,31 @@ export default function HomeMenu({ visible, onClose, navigation }) {
         Linking.openURL(storeUrl);
       }
       onClose();
+    } else if (item.id === 'help') {
+      // 문의하기 - 이메일 링크
+      try {
+        const url = 'mailto:arldsty@gmail.com?subject=ARLD 문의&body=안녕하세요.%0A%0A문의 내용을 작성해주세요.';
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert(t('error'), 'Cannot open email app.');
+        }
+      } catch (error) {
+        Alert.alert(t('error'), 'Failed to send email.');
+      }
+      onClose();
     } else if (item.screen) {
       navigation.navigate(item.screen);
       onClose();
     } else {
       // 나중에 구현할 화면들
-      Alert.alert('알림', `${item.title} 기능은 준비 중입니다.`);
+      Alert.alert(t('notification'), `${item.title} ${t('comingSoon')}`);
       onClose();
     }
   };
 
-  const handleUpgradePress = () => {
+  function handleUpgradePress() {
     navigation.navigate('Upgrade');
     onClose();
   };
@@ -96,52 +114,68 @@ export default function HomeMenu({ visible, onClose, navigation }) {
       transparent={true}
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
-        style={styles.overlay} 
-        activeOpacity={1} 
-        onPress={onClose}
-      >
+      <View style={styles.overlay}>
+        <TouchableOpacity 
+          style={[StyleSheet.absoluteFillObject]} 
+          activeOpacity={1} 
+          onPress={onClose}
+        />
         <View style={styles.menuContainer}>
           <TouchableOpacity activeOpacity={1}>
             {/* 헤더 */}
             <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>메뉴</Text>
+              <Text style={styles.menuTitle}>{t('menu')}</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={theme.colors.text.primary} />
+                <Ionicons name="close" size={24} color="#000000" />
               </TouchableOpacity>
             </View>
 
             {/* 사용자 정보 */}
             <View style={styles.userSection}>
               <Text style={styles.userName}>
-                {userProfile?.username || user?.email?.split('@')[0] || '사용자'}
+                {userProfile?.username || user?.email?.split('@')[0] || t('user')}
               </Text>
               <Text style={styles.userEmail}>
-                {user?.email || '로그인 정보 없음'}
+                {user?.email || t('noLoginInfo')}
               </Text>
             </View>
 
             {/* 전문가 업그레이드 버튼 */}
-            <TouchableOpacity style={styles.menuItem} onPress={() => handleUpgradePress()}>
+            <TouchableOpacity 
+              style={styles.menuItem} 
+              onPress={function() {
+                if (userProfile?.is_premium) {
+                  Alert.alert(t('expertAccount'), t('alreadyExpert'));
+                } else {
+                  handleUpgradePress();
+                }
+              }}
+            >
               <View style={styles.menuItemLeft}>
-                <Text style={[styles.menuItemText, { marginLeft: 0 }]}>전문가로 업그레이드</Text>
+                <Text style={[styles.menuItemText, { marginLeft: 0 }]}>
+                  {userProfile?.is_premium ? t('expertAccount') : t('upgradeToExpert')}
+                </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={theme.colors.text.secondary} />
+              <Ionicons 
+                name={userProfile?.is_premium ? "checkmark-circle" : "chevron-forward"} 
+                size={20} 
+                color={userProfile?.is_premium ? theme.colors.primary : theme.colors.text.secondary} 
+              />
             </TouchableOpacity>
 
             {/* 메뉴 리스트 */}
             <ScrollView style={styles.menuList}>
-              {menuItems.map(item => (
+              {menuItems.map(function(item) { return (
                 <TouchableOpacity
                   key={item.id}
                   style={styles.menuItem}
-                  onPress={() => handleMenuPress(item)}
+                  onPress={function() { return handleMenuPress(item); }}
                 >
                   <View style={styles.menuItemLeft}>
                     <Ionicons 
                       name={item.icon} 
                       size={24} 
-                      color={theme.colors.text.primary} 
+                      color="#000000" 
                     />
                     <Text style={styles.menuItemText}>{item.title}</Text>
                   </View>
@@ -151,16 +185,16 @@ export default function HomeMenu({ visible, onClose, navigation }) {
                     color={theme.colors.text.secondary} 
                   />
                 </TouchableOpacity>
-              ))}
+              ); })}
             </ScrollView>
 
             {/* 로그아웃 */}
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutText}>로그아웃</Text>
+              <Text style={styles.logoutText}>{t('logout')}</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         </View>
-      </TouchableOpacity>
+      </View>
     </Modal>
   );
 }
@@ -192,6 +226,7 @@ const styles = StyleSheet.create({
   menuTitle: {
     ...theme.typography.heading,
     fontWeight: '600',
+    color: '#000000',
   },
   closeButton: {
     padding: theme.spacing.sm,
@@ -206,10 +241,11 @@ const styles = StyleSheet.create({
     ...theme.typography.body,
     fontWeight: '600',
     marginBottom: 4,
+    color: '#000000',
   },
   userEmail: {
     ...theme.typography.caption,
-    color: theme.colors.text.secondary,
+    color: '#8E8E93', // 회색 유지
   },
   menuList: {
     maxHeight: 300,
@@ -230,6 +266,7 @@ const styles = StyleSheet.create({
   menuItemText: {
     ...theme.typography.body,
     marginLeft: theme.spacing.md,
+    color: '#000000',
   },
   logoutButton: {
     paddingVertical: theme.spacing.md,
@@ -243,3 +280,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+

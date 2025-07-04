@@ -10,30 +10,39 @@ import {
 } from 'react-native';
 import { theme } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../shared';
+import { useAuth } from '../features/auth';
 
-export default function HiddenUsersScreen({ navigation }) {
+function HiddenUsersScreen({ navigation }) {
   const [hiddenUsers, setHiddenUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const { user } = useAuth();
 
-  useEffect(() => {
-    loadCurrentUser();
-  }, []);
+  useEffect(function() {
+    checkAccessAndLoad();
+  }, [user]);
 
-  useEffect(() => {
-    if (currentUser) {
-      loadHiddenUsers();
+  async function checkAccessAndLoad() {
+    if (!user) {
+      navigation.goBack();
+      return;
     }
-  }, [currentUser]);
 
-  const loadCurrentUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setCurrentUser(user);
+    // 프리미엄 또는 관리자 확인
+    const isPremium = user?.user_profiles?.is_premium;
+    const isAdmin = user?.user_profiles?.is_admin;
+
+    // 관리자가 아니고 프리미엄이 아닌 경우 접근 차단
+    if (!isAdmin && !isPremium) {
+      navigation.navigate('Upgrade');
+      return;
+    }
+
+    loadHiddenUsers();
   };
 
-  const loadHiddenUsers = async () => {
-    if (!currentUser) return;
+  async function loadHiddenUsers() {
+    if (!user) return;
     
     setLoading(true);
     try {
@@ -43,7 +52,7 @@ export default function HiddenUsersScreen({ navigation }) {
           *,
           hidden_user:user_profiles!hidden_user_id(id, username, email)
         `)
-        .eq('user_id', currentUser.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -59,7 +68,7 @@ export default function HiddenUsersScreen({ navigation }) {
     }
   };
 
-  const handleUnhide = (hiddenUserId, userName) => {
+  function handleUnhide(hiddenUserId, userName) {
     Alert.alert(
       '숨김 해제',
       `${userName}님을 숨김 해제하시겠습니까?`,
@@ -67,18 +76,18 @@ export default function HiddenUsersScreen({ navigation }) {
         { text: '취소', style: 'cancel' },
         {
           text: '숨김 해제',
-          onPress: () => unhideUser(hiddenUserId)
+          onPress: function() { unhideUser(hiddenUserId); }
         }
       ]
     );
   };
 
-  const unhideUser = async (hiddenUserId) => {
+  async function unhideUser(hiddenUserId) {
     try {
       const { error } = await supabase
         .from('hidden_users')
         .delete()
-        .eq('user_id', currentUser.id)
+        .eq('user_id', user.id)
         .eq('hidden_user_id', hiddenUserId);
 
       if (error) {
@@ -94,7 +103,7 @@ export default function HiddenUsersScreen({ navigation }) {
     }
   };
 
-  const renderHiddenUser = ({ item }) => {
+  function renderHiddenUser({ item }) {
     const hiddenUser = item.hidden_user;
     const displayName = hiddenUser?.username || hiddenUser?.email?.split('@')[0] || '알 수 없는 사용자';
     
@@ -114,7 +123,7 @@ export default function HiddenUsersScreen({ navigation }) {
         </View>
         <TouchableOpacity
           style={styles.unhideButton}
-          onPress={() => handleUnhide(hiddenUser.id, displayName)}
+          onPress={function() { handleUnhide(hiddenUser.id, displayName); }}
         >
           <Ionicons name="eye" size={20} color={theme.colors.primary} />
           <Text style={styles.unhideText}>숨김 해제</Text>
@@ -123,22 +132,24 @@ export default function HiddenUsersScreen({ navigation }) {
     );
   };
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
+  function renderEmptyState() {
+    return (
+      <View style={styles.emptyState}>
       <Ionicons name="eye-off-outline" size={64} color={theme.colors.text.secondary} />
       <Text style={styles.emptyTitle}>숨긴 사용자가 없습니다</Text>
       <Text style={styles.emptyDescription}>
         다른 사용자를 숨기면 여기에 표시됩니다
       </Text>
     </View>
-  );
+    );
+  }
 
   return (
     <View style={styles.container}>
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity 
-          onPress={() => navigation.goBack()}
+          onPress={function() { navigation.goBack(); }}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
@@ -158,7 +169,7 @@ export default function HiddenUsersScreen({ navigation }) {
       <FlatList
         data={hiddenUsers}
         renderItem={renderHiddenUser}
-        keyExtractor={(item) => item.id}
+        keyExtractor={function(item) { return item.id; }}
         style={styles.list}
         contentContainerStyle={hiddenUsers.length === 0 ? styles.emptyContainer : null}
         ListEmptyComponent={renderEmptyState}
@@ -195,7 +206,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...theme.typography.heading,
-    fontSize: 16,
+    fontSize: 22,
     fontWeight: '600',
   },
   headerRight: {
@@ -292,3 +303,5 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 });
+
+export default HiddenUsersScreen;

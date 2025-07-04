@@ -13,14 +13,14 @@ import {
 } from 'react-native';
 import { theme } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { supabase } from '../services/supabaseClient';
+import { supabase } from '../shared';
 
 export default function AccountDeletionScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDeleteAccount = async () => {
+  async function handleDeleteAccount() {
     if (!password.trim()) {
       Alert.alert('오류', '비밀번호를 입력해주세요.');
       return;
@@ -37,7 +37,7 @@ export default function AccountDeletionScreen({ navigation }) {
         {
           text: '삭제',
           style: 'destructive',
-          onPress: async () => {
+          onPress: async function() {
             setIsDeleting(true);
             try {
               // 현재 사용자 정보 가져오기
@@ -59,48 +59,38 @@ export default function AccountDeletionScreen({ navigation }) {
                 return;
               }
 
-              // 계정 삭제 처리
-              // 실제 구현시에는 서버에서 관련 데이터를 모두 삭제하는 API를 호출해야 합니다
-              const { error: deleteError } = await supabase.auth.admin.deleteUser(
-                user.id
-              );
+              // 계정 삭제 예약 (24시간 유예)
+              const DELETION_GRACE_PERIOD = 24 * 60 * 60 * 1000; // 24시간
+              const scheduledDeletionTime = new Date(Date.now() + DELETION_GRACE_PERIOD);
 
-              if (deleteError) {
-                // 클라이언트에서 직접 삭제할 수 없는 경우, 서버 API 호출
-                Alert.alert(
-                  '계정 삭제 요청',
-                  '계정 삭제 요청이 접수되었습니다. 24시간 이내에 처리됩니다.',
-                  [
-                    {
-                      text: '확인',
-                      onPress: async () => {
-                        // 로그아웃 처리
-                        await supabase.auth.signOut();
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: 'Login' }],
-                        });
-                      }
-                    }
-                  ]
-                );
-              } else {
-                Alert.alert(
-                  '계정 삭제 완료',
-                  '계정이 성공적으로 삭제되었습니다.',
-                  [
-                    {
-                      text: '확인',
-                      onPress: () => {
-                        navigation.reset({
-                          index: 0,
-                          routes: [{ name: 'Login' }],
-                        });
-                      }
-                    }
-                  ]
-                );
+              const { error: updateError } = await supabase.auth.updateUser({
+                data: { 
+                  deletion_request: {
+                    requested_at: new Date().toISOString(),
+                    scheduled_deletion_at: scheduledDeletionTime.toISOString(),
+                    reason: "사용자 요청"
+                  }
+                }
+              });
+
+              if (updateError) {
+                Alert.alert('오류', '계정 삭제 요청 중 문제가 발생했습니다.');
+                return;
               }
+
+              Alert.alert(
+                '계정 삭제 예약',
+                `계정이 24시간 후 삭제됩니다.\n\n삭제 예정 시간: ${scheduledDeletionTime.toLocaleString()}\n\n로그인하여 언제든 취소할 수 있습니다.`,
+                [
+                  {
+                    text: '확인',
+                    onPress: async function() {
+                      // 로그아웃 처리
+                      await supabase.auth.signOut();
+                    }
+                  }
+                ]
+              );
             } catch (error) {
               console.error('계정 삭제 오류:', error);
               Alert.alert('오류', '계정 삭제 중 문제가 발생했습니다.');
@@ -121,7 +111,7 @@ export default function AccountDeletionScreen({ navigation }) {
       {/* 헤더 */}
       <View style={styles.header}>
         <TouchableOpacity 
-          onPress={() => navigation.goBack()}
+          onPress={function() { navigation.goBack(); }}
           style={styles.backButton}
         >
           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
@@ -173,16 +163,16 @@ export default function AccountDeletionScreen({ navigation }) {
           </View>
 
           <View style={styles.infoItem}>
-            <Ionicons name="heart-outline" size={20} color={theme.colors.text.primary} />
+            <Ionicons name="bookmark-outline" size={20} color={theme.colors.text.primary} />
             <View style={styles.infoTextContainer}>
-              <Text style={styles.infoText}>좋아요, 북마크, 팔로우 정보</Text>
+              <Text style={styles.infoText}>북마크 정보</Text>
             </View>
           </View>
 
           <View style={styles.infoItem}>
             <Ionicons name="document-text-outline" size={20} color={theme.colors.text.primary} />
             <View style={styles.infoTextContainer}>
-              <Text style={styles.infoText}>작성한 구인구직 글 및 댓글</Text>
+              <Text style={styles.infoText}>작성한 구인구직 글</Text>
             </View>
           </View>
         </View>
@@ -206,7 +196,7 @@ export default function AccountDeletionScreen({ navigation }) {
               editable={!isDeleting}
             />
             <TouchableOpacity
-              onPress={() => setShowPassword(!showPassword)}
+              onPress={function() { setShowPassword(!showPassword); }}
               style={styles.eyeButton}
             >
               <Ionicons 
@@ -234,7 +224,7 @@ export default function AccountDeletionScreen({ navigation }) {
         {/* 취소 버튼 */}
         <TouchableOpacity
           style={styles.cancelButton}
-          onPress={() => navigation.goBack()}
+          onPress={function() { navigation.goBack(); }}
           disabled={isDeleting}
         >
           <Text style={styles.cancelButtonText}>취소</Text>
@@ -391,3 +381,4 @@ const styles = StyleSheet.create({
     height: 50,
   },
 });
+

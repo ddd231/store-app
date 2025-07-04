@@ -1,9 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useRef, memo } from 'react';
 import { TouchableOpacity, Animated, Text } from 'react-native';
 
-export default function AnimatedButton({ 
+function AnimatedButton({ 
   children, 
   onPress, 
+  onLongPress,
   style, 
   textStyle, 
   disabled = false,
@@ -14,7 +15,7 @@ export default function AnimatedButton({
   const opacityValue = useRef(new Animated.Value(1)).current;
   const translateValue = useRef(new Animated.Value(0)).current;
 
-  const handlePressIn = () => {
+  function handlePressIn() {
     if (disabled || disableAnimation || animationType === 'none') return;
 
     if (animationType === 'scale') {
@@ -50,7 +51,7 @@ export default function AnimatedButton({
     }
   };
 
-  const handlePressOut = () => {
+  function handlePressOut() {
     if (disabled || disableAnimation || animationType === 'none') return;
 
     if (animationType === 'scale') {
@@ -97,6 +98,7 @@ export default function AnimatedButton({
   return (
     <TouchableOpacity
       onPress={onPress}
+      onLongPress={onLongPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled}
@@ -112,3 +114,7 @@ export default function AnimatedButton({
     </TouchableOpacity>
   );
 }
+
+AnimatedButton.displayName = 'AnimatedButton';
+
+export default memo(AnimatedButton);

@@ -1,16 +1,16 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import ChatListScreen from '../screens/ChatListScreen';
-import ChatScreen from '../screens/ChatScreen';
-import SelectFriendForChatScreen from '../screens/SelectFriendForChatScreen';
+import ChatListScreen from '../features/chat/screens/ChatListScreen';
+import ChatScreen from '../features/chat/screens/ChatScreen';
+import SelectFriendForChatScreen from '../features/chat/screens/SelectFriendForChatScreen';
 import { theme } from '../styles/theme';
 
 const Stack = createStackNavigator();
 
-export default function ChatNavigator() {
+function ChatNavigator() {
   // 공통 애니메이션 옵션
   const scaleAnimation = {
-    cardStyleInterpolator: ({ current, next, closing }) => {
+    cardStyleInterpolator: function({ current, next, closing }) {
       // 닫을 때는 기본 애니메이션 사용
       if (closing) {
         return {};
@@ -82,10 +82,10 @@ export default function ChatNavigator() {
           elevation: 0,
           shadowOpacity: 0,
           borderBottomWidth: 0,
-          height: 100,
         },
         headerTitleStyle: {
           ...theme.typography.body,
+          fontSize: 17,
           fontWeight: '600',
           paddingTop: 5,
         },
@@ -101,17 +101,16 @@ export default function ChatNavigator() {
         name="ChatList" 
         component={ChatListScreen}
         options={{
-          title: '채팅',
-          headerTitleAlign: 'center',
+          headerShown: false,
         }}
       />
       <Stack.Screen 
         name="Chat" 
         component={ChatScreen}
-        options={({ route }) => ({
+        options={function({ route }) { return {
           title: route.params?.roomName || '채팅방',
           headerTitleAlign: 'center',
-        })}
+        }; }}
       />
       <Stack.Screen 
         name="SelectFriendForChat" 
@@ -122,4 +121,6 @@ export default function ChatNavigator() {
       />
     </Stack.Navigator>
   );
-}
+};
+
+export default ChatNavigator;

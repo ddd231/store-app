@@ -6,7 +6,7 @@ import {
   launchImageLibraryAsync
 } from 'expo-image-picker';
 import { getDocumentAsync } from 'expo-document-picker';
-import { supabase } from './supabaseClient';
+import { supabase } from '../shared';
 import { Platform } from 'react-native';
 
 /**
@@ -34,7 +34,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
  * 카메라에서 이미지 촬영
  * @returns {Promise<Object>} - 선택된 이미지 정보
  */
-export const takePicture = async () => {
+export async function takePicture() {
   try {
     // 카메라 권한 요청
     const permissionResult = await requestCameraPermissionsAsync();
@@ -91,7 +91,7 @@ export const takePicture = async () => {
  * 갤러리에서 이미지 선택
  * @returns {Promise<Object>} - 선택된 이미지 정보
  */
-export const pickImage = async () => {
+export async function pickImage() {
   try {
     // 미디어 라이브러리 권한 요청
     const permissionResult = await requestMediaLibraryPermissionsAsync();
@@ -156,7 +156,7 @@ export const pickImage = async () => {
  * 문서 파일 선택
  * @returns {Promise<Object>} - 선택된 문서 정보
  */
-export const pickDocument = async () => {
+export async function pickDocument() {
   try {
     const result = await getDocumentAsync({
       type: ALLOWED_DOCUMENT_TYPES,
@@ -203,7 +203,7 @@ export const pickDocument = async () => {
  * @param {string} folder - 폴더 경로 (선택사항)
  * @returns {Promise<Object>} - 업로드 결과
  */
-export const uploadFileToStorage = async (file, bucket = 'chat-files', folder = 'uploads') => {
+export async function uploadFileToStorage(file, bucket = 'chat-files', folder = 'uploads') {
   try {
     if (!file || !file.uri) {
       throw new Error('유효하지 않은 파일입니다.');
@@ -282,7 +282,7 @@ export const uploadFileToStorage = async (file, bucket = 'chat-files', folder = 
  * @param {Object} file - 업로드할 파일
  * @returns {Promise<Object>} - 업로드 결과
  */
-export const uploadImageMessage = async (roomId, file) => {
+export async function uploadImageMessage(roomId, file) {
   try {
     // 이미지를 chat-images 버킷에 업로드
     const uploadResult = await uploadFileToStorage(file, 'chat-images', `rooms/${roomId}`);
@@ -315,7 +315,7 @@ export const uploadImageMessage = async (roomId, file) => {
  * @param {Object} file - 업로드할 파일
  * @returns {Promise<Object>} - 업로드 결과
  */
-export const uploadDocumentMessage = async (roomId, file) => {
+export async function uploadDocumentMessage(roomId, file) {
   try {
     // 문서를 chat-documents 버킷에 업로드
     const uploadResult = await uploadFileToStorage(file, 'chat-documents', `rooms/${roomId}`);
@@ -348,7 +348,7 @@ export const uploadDocumentMessage = async (roomId, file) => {
  * @param {Object} file - 업로드할 이미지 파일
  * @returns {Promise<Object>} - 업로드 결과
  */
-export const uploadUserAvatar = async (userId, file) => {
+export async function uploadUserAvatar(userId, file) {
   try {
     // 아바타를 avatars 버킷에 업로드
     const uploadResult = await uploadFileToStorage(file, 'avatars', 'users');
@@ -389,7 +389,7 @@ export const uploadUserAvatar = async (userId, file) => {
  * @param {string} path - 파일 경로
  * @returns {Promise<Object>} - 삭제 결과
  */
-export const deleteFile = async (bucket, path) => {
+export async function deleteFile(bucket, path) {
   try {
     const { error } = await supabase.storage
       .from(bucket)
@@ -414,7 +414,7 @@ export const deleteFile = async (bucket, path) => {
  * @param {number} bytes - 바이트 크기
  * @returns {string} - 포맷된 파일 크기
  */
-export const formatFileSize = (bytes) => {
+export function formatFileSize(bytes) {
   if (bytes === 0) return '0 Bytes';
   
   const k = 1024;
@@ -429,7 +429,7 @@ export const formatFileSize = (bytes) => {
  * @param {string} mimeType - 파일 MIME 타입
  * @returns {string} - Ionicons 아이콘 이름
  */
-export const getFileTypeIcon = (mimeType) => {
+export function getFileTypeIcon(mimeType) {
   if (mimeType.startsWith('image/')) {
     return 'image';
   } else if (mimeType === 'application/pdf') {

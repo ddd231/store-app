@@ -3,18 +3,22 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-nati
 import { theme } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function TermsOfServiceScreen({ navigation }) {
+function TermsOfServiceScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={function() { navigation.goBack(); }}>
           <Ionicons name="arrow-back" size={24} color={theme.colors.text.primary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>이용약관</Text>
         <View style={{ width: 24 }} />
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         <Text style={styles.lastUpdated}>최종 수정일: 2025년 6월 10일</Text>
 
         <Text style={styles.sectionTitle}>제1조 (목적)</Text>
@@ -122,10 +126,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     paddingTop: theme.spacing.lg,
   },
+  scrollContent: {
+    paddingBottom: 100,
+  },
   lastUpdated: {
     ...theme.typography.caption,
     color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
   },
   sectionTitle: {
     ...theme.typography.subheading,
@@ -147,3 +154,5 @@ const styles = StyleSheet.create({
     color: theme.colors.text.primary,
   },
 });
+
+export default TermsOfServiceScreen;

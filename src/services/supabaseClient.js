@@ -5,22 +5,76 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
+
+// 최소 데이터 사용을 위한 커스텀 스토리지 어댑터
+const MinimalDataStorage = {
+  async getItem(key) {
+    try {
+      // JWT 토큰만 저장 (기본 사용자 데이터 제외)
+      const value = await AsyncStorage.getItem(key);
+      if (value) {
+        const parsed = JSON.parse(value);
+        // access_token과 refresh_token만 유지, 불필요한 메타데이터 제거
+        if (parsed.access_token && parsed.refresh_token) {
+          return JSON.stringify({
+            access_token: parsed.access_token,
+            refresh_token: parsed.refresh_token,
+            expires_at: parsed.expires_at, // 만료 시간만 유지
+            token_type: parsed.token_type || 'bearer'
+          });
+        }
+      }
+      return value;
+    } catch (error) {
+      return null;
+    }
+  },
+  async setItem(key, value) {
+    try {
+      // 세션 데이터 최소화
+      if (key.includes('auth')) {
+        const parsed = JSON.parse(value);
+        // 필수 토큰 정보만 저장
+        const minimalSession = {
+          access_token: parsed.access_token,
+          refresh_token: parsed.refresh_token,
+          expires_at: parsed.expires_at,
+          token_type: parsed.token_type || 'bearer'
+        };
+        await AsyncStorage.setItem(key, JSON.stringify(minimalSession));
+      } else {
+        await AsyncStorage.setItem(key, value);
+      }
+    } catch (error) {
+      // 저장 오류 무시 (중요하지 않음)
+    }
+  },
+  async removeItem(key) {
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      // 삭제 오류 무시 (중요하지 않음)
+    }
+  }
+};
 
 // Supabase 프로젝트 URL와 익명 키 설정 (환경변수에서 가져오기)
-export const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-export const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+export const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
+export const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
 // 기본 버킷 이름 설정
 export const DEFAULT_BUCKET = 'artify-uploads';
 
 // 플랫폼 감지
 export const isWeb = typeof window !== 'undefined' && typeof document !== 'undefined';
-export const isHermesEngine = global.HermesInternal != null;
+export const isHermesEngine = typeof global !== 'undefined' && global.HermesInternal != null;
 
 // 오프라인 모드 상태 관리
 let _isInFallbackMode = false;
-export const isInFallbackMode = () => _isInFallbackMode;
-export const setFallbackMode = (value) => {
+export const isInFallbackMode = function() { return _isInFallbackMode; };
+export function setFallbackMode(value) {
   _isInFallbackMode = value;
   return value;
 };
@@ -34,80 +88,67 @@ let supabaseInstance = null;
 // 클라이언트 초기화 함수
 function initializeSupabase() {
   if (supabaseInstance === null) {
-    
-    // 웹소켓 및 안전 모드 설정 확인
-    const isSafeMode = isWeb && window && 
-      (window.__APP_SAFE_MODE || window.localStorage?.getItem('APP_SAFE_MODE') === 'true');
-    
-    // Supabase 설정 가져오기
-    const webSettings = isWeb && window && window.__SUPABASE_WEB_SETTINGS || {};
-    
-    // Realtime 초기화 옵션
-    const realtimeOptions = {
-      params: {
-        log_level: isWeb && window.localStorage?.getItem('SUPABASE_LOG_LEVEL') || 'error',
-      },
-    };
-    
-    // 안전 모드에서는 Realtime 비활성화 옵션 추가
-    if (isSafeMode || webSettings.disableRealtime) {
-      realtimeOptions.enabled = false;
-    }
-    
-    // 웹소켓 관련 설정
-    if (isWeb && window && (window.__APP_DISABLE_WEBSOCKET || webSettings.disableWebsocket)) {
-      realtimeOptions.enabled = false;
-    }
-    
-    // 클라이언트 옵션 구성
-    const clientOptions = {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true,
-      },
-      realtime: realtimeOptions,
-      global: {
-        fetch: safeFetch, // 안전한 fetch 사용
-      },
-    };
-    
-    // 오프라인 모드 설정
-    if (isWeb && window && (window.__APP_OFFLINE_MODE || webSettings.forceOffline)) {
-      setFallbackMode(true);
-    }
-    
-    // 클라이언트 생성
     try {
-      if (__DEV__) {
-      }
-      
+      // 환경변수 체크
       if (!supabaseUrl || !supabaseAnonKey) {
-        // 웹에서는 더미 클라이언트 반환
-        if (typeof window !== 'undefined') {
-          supabaseInstance = {
-            auth: { getUser: () => Promise.resolve({ data: { user: null } }) },
-            from: () => ({ select: () => Promise.resolve({ data: [] }) })
-          };
-          return supabaseInstance;
-        }
+        // Supabase 환경변수 누락 오류
         throw new Error('Supabase URL 또는 Key가 없습니다');
       }
       
+      // 최소 데이터 사용을 위한 최적화된 설정
+      const clientOptions = {
+        auth: {
+          storage: MinimalDataStorage, // JWT 토큰만 저장 (access_token + refresh_token)
+          autoRefreshToken: true, // 토큰 자동 갱신으로 재로그인 방지
+          persistSession: true, // 앱 재시작해도 로그인 유지
+          detectSessionInUrl: false, // URL 파싱 비활성화
+          flowType: 'pkce', // 보안성 향상, 데이터 사용량 최소화
+          storage_key: 'sb-auth', // 짧은 키 이름으로 저장 공간 절약
+        },
+        realtime: {
+          enabled: true // 실시간 기능 활성화
+        },
+        global: {
+          headers: {
+            'Cache-Control': 'max-age=3600' // 1시간 캐싱으로 네트워크 요청 최소화
+          }
+        }
+      };
+      
       supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, clientOptions);
+      
+      // 배터리 및 데이터 절약을 위한 최적화된 AppState 관리
+      try {
+        AppState.addEventListener('change', function(state) { 
+          if (state === 'active') {
+            // 앱 활성화 시에만 토큰 새로고침 (최소 데이터 사용)
+            supabaseInstance.auth.startAutoRefresh();
+          } else {
+            // 백그라운드에서는 새로고침 중단으로 데이터 절약
+            supabaseInstance.auth.stopAutoRefresh();
+          }
+        });
+      } catch (appStateError) {
+        // AppState 리스너 추가 실패 시 무시하고 계속 진행
+      }
     } catch (error) {
-      if (__DEV__) console.error('[supabaseClient] 생성 오류:', error);
-      // 오류 발생 시 기본 옵션으로 재시도
-      supabaseInstance = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: { autoRefreshToken: true, persistSession: true }
-      });
-      setFallbackMode(true);
+      throw error;
     }
   }
   return supabaseInstance;
 }
 
-// 클라이언트 싱글톤 가져오기
-export const supabase = initializeSupabase();
+// 클라이언트 싱글톤 가져오기 (지연 초기화)
+let _supabase = null;
+export function getSupabase() {
+  if (!_supabase) {
+    _supabase = initializeSupabase();
+  }
+  return _supabase;
+};
+
+// 호환성을 위한 기본 export
+export const supabase = getSupabase();
 
 // Storage 관련 함수
 /**
@@ -129,6 +170,8 @@ export async function ensureBucketExists(bucketName) {
  * @returns {Promise<{publicUrl: string}>} - 업로드된 파일의 공개 URL
  */
 export async function uploadFileToSupabase(file, bucketName, path) {
+  // 파일 업로드 시작
+  
   if (!bucketName || !path || !file) {
     throw new Error('버킷 이름, 경로 및 파일이 필요합니다');
   }
@@ -137,33 +180,61 @@ export async function uploadFileToSupabase(file, bucketName, path) {
     // 버킷이 존재하는지 확인
     await ensureBucketExists(bucketName);
     
-    // FormData 방식으로 업로드 시도
     let uploadData;
     
     if (file.uri) {
-      // React Native 파일 객체인 경우
-      const formData = new FormData();
-      formData.append('file', {
-        uri: file.uri,
-        type: file.type || 'image/jpeg',
-        name: file.name || 'image.jpg'
-      });
-      uploadData = formData;
+      // React Native 파일 감지됨
+      
+      // 방법 1: fetch + FormData (가장 빠르고 안정적)
+      try {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: file.uri,
+          type: file.type || 'image/jpeg',
+          name: file.name || 'image.jpg'
+        });
+        
+        uploadData = formData;
+        // FormData 생성 완료
+        
+      } catch (formDataError) {
+        // FormData 실패, ArrayBuffer 시도
+        
+        // 방법 2: fetch + ArrayBuffer (바이너리 처리)
+        if (file.base64) {
+          const binaryString = atob(file.base64);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          uploadData = bytes.buffer;
+          // Base64 → ArrayBuffer 변환 완료
+        } else {
+          const response = await fetch(file.uri);
+          uploadData = await response.arrayBuffer();
+          // Fetch → ArrayBuffer 변환 완료
+        }
+      }
+      
     } else {
-      // 일반 Blob/File인 경우
+      // 웹 환경용
       uploadData = file;
+      // Regular file/blob
     }
     
-    // 파일 업로드
+    // 파일 업로드 - contentType 명시적 설정
+    // Supabase 스토리지에 업로드 중...
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(path, uploadData, {
         cacheControl: '3600',
         upsert: true,
+        contentType: file.type || 'image/jpeg'
       });
     
     if (error) {
-      console.error('파일 업로드 오류:', error);
+      // 파일 업로드 오류 발생
       throw error;
     }
     
@@ -186,7 +257,7 @@ export async function uploadFileToSupabase(file, bucketName, path) {
       path: data.path
     };
   } catch (error) {
-    console.error('파일 업로드 중 오류:', error);
+    // 파일 업로드 중 오류
     throw error;
   }
 }
@@ -198,9 +269,9 @@ export async function uploadFileToSupabase(file, bucketName, path) {
  * @returns {Promise<never>} - 타임아웃 후 거부되는 Promise
  */
 export function timeoutPromise(ms) {
-  return new Promise((_, reject) => 
-    setTimeout(() => reject(new Error(`타임아웃: ${ms}ms 이상 경과`)), ms)
-  );
+  return new Promise(function(_, reject) {
+    setTimeout(function() { reject(new Error(`타임아웃: ${ms}ms 이상 경과`)); }, ms);
+  });
 }
 
 /**
@@ -213,7 +284,7 @@ export function timeoutPromise(ms) {
 export async function safeFetch(url, options = {}, timeout = 5000) {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const timeoutId = setTimeout(function() { controller.abort(); }, timeout);
     
     const response = await fetch(url, {
       ...options,
@@ -223,7 +294,7 @@ export async function safeFetch(url, options = {}, timeout = 5000) {
     clearTimeout(timeoutId);
     return response;
   } catch (error) {
-    console.error(`Fetch 오류 [${url}]:`, error);
+    // Fetch 오류 발생
     throw error;
   }
 }
@@ -239,7 +310,7 @@ export async function testSupabaseConnection() {
     if (error) throw error;
     return true;
   } catch (error) {
-    console.error('Supabase 연결 테스트 실패:', error);
+    // Supabase 연결 테스트 실패
     return false;
   }
 }
@@ -279,7 +350,7 @@ export function createChatChannel(channelName) {
   try {
     return supabase.channel(channelName);
   } catch (error) {
-    console.error('채팅 채널 생성 오류:', error);
+    // 채팅 채널 생성 오류
     throw error;
   }
 }
@@ -295,7 +366,7 @@ export async function signInAnonymously() {
     if (error) throw error;
     return data;
   } catch (error) {
-    console.error('익명 로그인 오류:', error);
+    // 익명 로그인 오류
     throw error;
   }
 }
@@ -306,11 +377,18 @@ export async function signInAnonymously() {
  */
 export async function getCurrentUserId() {
   try {
-    const { data, error } = await supabase.auth.getSession();
-    if (error) throw error;
-    return data.session?.user?.id || null;
+    // getUser()가 더 안정적임
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      // getCurrentUserId 오류
+      return null;
+    }
+    
+    const userId = data.user?.id || null;
+    // getCurrentUserId 결과 반환
+    return userId;
   } catch (error) {
-    console.error('사용자 ID 가져오기 오류:', error);
+    // 사용자 ID 가져오기 오류
     return null;
   }
 }
@@ -324,7 +402,7 @@ export async function signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   } catch (error) {
-    console.error('로그아웃 오류:', error);
+    // 로그아웃 오류
     throw error;
   }
 }

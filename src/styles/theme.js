@@ -1,13 +1,13 @@
 // 미니멀 디자인 테마
 export const theme = {
   colors: {
-    primary: '#007AFF', // 파란색 (iOS 기본)
+    primary: '#00BFFF', // 진한 하늘색 (Deep Sky Blue)
     secondary: '#5856D6', // 보라색
     background: '#F5F1E8',
     surface: '#F2F2F7', // 연한 회색 배경
     text: {
       primary: '#000000',
-      secondary: '#8E8E93',
+      secondary: '#000000',
       placeholder: '#C7C7CC'
     },
     border: '#E5E5EA',

@@ -1,8 +1,10 @@
 const path = require('path');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 module.exports = {
   entry: './index.web.js',
-  mode: 'development',
+  mode: isProduction ? 'production' : 'development',
   module: {
     rules: [
       {
@@ -36,12 +38,32 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'bundle.js',
-    publicPath: '/'
+    filename: isProduction ? 'bundle.[contenthash].js' : 'bundle.js',
+    publicPath: '/',
+    clean: true
+  },
+  optimization: {
+    minimize: isProduction,
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'all',
+        },
+      },
+    },
+  },
+  performance: {
+    maxAssetSize: 512000,
+    maxEntrypointSize: 512000,
+    hints: isProduction ? 'warning' : false,
   },
   devServer: {
     static: path.join(__dirname, 'public'),
     port: 3000,
-    historyApiFallback: true
+    historyApiFallback: true,
+    compress: true
   }
 };
