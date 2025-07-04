@@ -51,11 +51,11 @@ export default function ChatListScreen({ navigation }) {
     console.log('[ChatListScreen] 채팅방 로딩 시작, user ID:', user.id);
     
     try {
-      // 간단하게 모든 채팅방 가져오기
-      const roomsPromise = supabase
-        .from('chat_rooms')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // 1단계: 사용자가 참여한 채팅방 ID들 가져오기
+      const participantsPromise = supabase
+        .from('chat_participants')
+        .select('room_id')
+        .eq('user_id', user.id);
 
       const timeoutPromise = new Promise(function(_, reject) {
         setTimeout(function() {
@@ -63,9 +63,34 @@ export default function ChatListScreen({ navigation }) {
         }, 15000);
       });
 
+      const { data: participantData, error: participantError } = await Promise.race([participantsPromise, timeoutPromise]);
+
+      console.log('[ChatListScreen] 참여자 쿼리 결과:', { participantData, participantError });
+
+      if (participantError) {
+        console.error('참여자 데이터 로드 오류:', participantError);
+        setChats([]);
+        return;
+      }
+
+      if (!participantData || participantData.length === 0) {
+        console.log('[ChatListScreen] 참여 중인 채팅방이 없음');
+        setChats([]);
+        return;
+      }
+
+      // 2단계: 참여한 채팅방들의 정보 가져오기
+      const roomIds = participantData.map(function(p) { return p.room_id; });
+      
+      const roomsPromise = supabase
+        .from('chat_rooms')
+        .select('*')
+        .in('id', roomIds)
+        .order('created_at', { ascending: false });
+
       const { data, error } = await Promise.race([roomsPromise, timeoutPromise]);
 
-      console.log('[ChatListScreen] 쿼리 결과:', { data, error });
+      console.log('[ChatListScreen] 채팅방 쿼리 결과:', { data, error });
 
       if (error) {
         console.error('채팅방 로드 오류:', error);
