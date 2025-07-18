@@ -13,7 +13,8 @@ export default function ProfileHeader({
   profileStats,
   onQRCode,
   onAddFriend,
-  onUserMenuPress
+  onUserMenuPress,
+  onUploadWork
 }) {
   const { t } = useLanguage();
 
@@ -82,7 +83,7 @@ export default function ProfileHeader({
       {isOwnProfile && (
         <TouchableOpacity 
           style={profileHeaderStyles.settingItem}
-          onPress={function() { navigation.navigate('WorkUpload'); }}
+          onPress={onUploadWork}
         >
           <View style={profileHeaderStyles.settingLeft}>
             <Ionicons name="cloud-upload-outline" size={24} color="#000000" />

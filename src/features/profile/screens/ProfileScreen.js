@@ -97,6 +97,7 @@ export default function ProfileScreen({ navigation, route }) {
           onQRCode={handleQRCode}
           onAddFriend={handleAddFriend}
           onUserMenuPress={function() { setUserMenuVisible(true); }}
+          onUploadWork={function() { setUploadModalVisible(true); }}
         />
         
         <ProfileTabs

@@ -16,7 +16,7 @@ import ChatNavigator from './ChatNavigator';
 import BoardScreen from '../screens/BoardScreen';
 import { ProfileScreen, ProfileEditScreen, FriendsListScreen } from '../features/profile';
 import { UpgradeScreen, BookmarksScreen } from '../features/premium';
-import { WorkUploadScreen, WorkTypeSelectScreen, WorkDetailScreen, EditWorkScreen } from '../features/works';
+import { WorkUploadScreen, WorkDetailScreen, EditWorkScreen } from '../features/works';
 import { JobPostScreen, JobDetailScreen, JobEditScreen } from '../features/job';
 import { ContestDetailScreen, ContestEditScreen } from '../features/contest';
 import { BlogDetailScreen, BlogEditScreen } from '../features/blog';
@@ -219,7 +219,6 @@ function TabNavigator() {
           presentation: 'modal'
         }}
       />
-      <Stack.Screen name="WorkTypeSelect" component={WorkTypeSelectScreen} />
       <Stack.Screen name="WorkUpload" component={WorkUploadScreen} />
       <Stack.Screen name="WorkDetail" component={WorkDetailScreen} />
       <Stack.Screen name="JobPost" component={JobPostScreen} />
