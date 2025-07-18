@@ -2,10 +2,43 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Platform, Animated, Easing } from 'react-native';
 import { theme } from '../../../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { 
-  requestSubscription,
-  useIAP
-} from 'react-native-iap';
+// IAP 관련 import - 개발 환경에서는 비활성화
+let requestSubscription, useIAP;
+try {
+  if (!__DEV__) {
+    const iapModule = require('react-native-iap');
+    requestSubscription = iapModule.requestSubscription;
+    useIAP = iapModule.useIAP;
+  } else {
+    // 개발 환경에서는 모킹
+    requestSubscription = function() { return Promise.resolve({}); };
+    useIAP = function() {
+      return {
+        connected: false,
+        subscriptions: [],
+        getSubscriptions: function() { return Promise.resolve([]); },
+        currentPurchase: null,
+        currentPurchaseError: null,
+        initConnectionError: null,
+        finishTransaction: function() { return Promise.resolve(); }
+      };
+    };
+  }
+} catch (error) {
+  // IAP 모듈 로드 실패 시 fallback
+  requestSubscription = function() { return Promise.resolve({}); };
+  useIAP = function() {
+    return {
+      connected: false,
+      subscriptions: [],
+      getSubscriptions: function() { return Promise.resolve([]); },
+      currentPurchase: null,
+      currentPurchaseError: null,
+      initConnectionError: null,
+      finishTransaction: function() { return Promise.resolve(); }
+    };
+  };
+}
 import { supabase } from '../../../shared';
 import { useAuth } from '../../auth/hooks/useAuth';
 import { logger } from '../../../shared';
@@ -69,7 +102,7 @@ export default function UpgradeScreen({ navigation }) {
 
   // 구매 업데이트 처리 함수
   async function handlePurchaseUpdate(purchase) {
-    logger.log('구매 업데이트 수신:', purchase);
+    logger.log('🎯 [결제플로우] 구매 업데이트 수신:', purchase);
     
     try {
       // 구매 상태 검증
@@ -77,43 +110,62 @@ export default function UpgradeScreen({ navigation }) {
         ? purchase.purchaseStateAndroid === 1 
         : purchase.transactionReceipt;
       
+      logger.log('🎯 [결제플로우] 구매 상태 검증:', { isPurchased, platform: Platform.OS });
+      
       if (isPurchased) {
+        logger.log('🎯 [결제플로우] 구매 확인됨, 서버 검증 시작');
+        
         // 서버 검증 실행
         await activateSubscription(purchase);
+        
+        logger.log('🎯 [결제플로우] 서버 검증 완료, 트랜잭션 완료 처리');
         
         // 플랫폼별 트랜잭션 완료
         await finishTransaction({ purchase, isConsumable: false });
         
-        // 사용자 프로필 새로고침 후 네비게이션
-        logger.log('🔄 사용자 프로필 새로고침 중...');
-        await refreshUserProfile();
+        logger.log('🎯 [결제플로우] 트랜잭션 완료, 프로필 새로고침 시작');
         
-        // 프리미엄 상태 확인 후 네비게이션
+        // 여러 번 프로필 새로고침 시도
+        let refreshSuccess = false;
+        for (let i = 0; i < 3; i++) {
+          logger.log(`🎯 [결제플로우] 프로필 새로고침 시도 ${i + 1}/3`);
+          const result = await refreshUserProfile();
+          if (result?.success) {
+            refreshSuccess = true;
+            logger.log('🎯 [결제플로우] 프로필 새로고침 성공!');
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 1초 대기
+        }
+        
+        if (!refreshSuccess) {
+          logger.warn('🎯 [결제플로우] 프로필 새로고침 실패, 하지만 계속 진행');
+        }
+        
+        // 즉시 화면 전환 (상태 업데이트 대기 없이)
+        logger.log('🎯 [결제플로우] 홈으로 이동 시작');
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home', params: { premiumUpdated: true } }],
+        });
+        logger.log('🎯 [결제플로우] 홈으로 이동 완료!');
+        
+        // 성공 메시지 표시
         setTimeout(function() {
-          logger.log('🚀 홈으로 이동 시작...');
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'Home', params: { premiumUpdated: true } }],
-          });
-          logger.log('🚀 홈으로 이동 완료!');
-          
-          // 성공 메시지 표시
-          setTimeout(function() {
-            Alert.alert(
-              '구독 완료',
-              '프리미엄 구독이 활성화되었습니다!'
-            );
-          }, 500);
-        }, 1000); // 상태 업데이트 완료 후 네비게이션
+          Alert.alert(
+            '구독 완료',
+            '프리미엄 구독이 활성화되었습니다!'
+          );
+        }, 1500);
         
       } else {
-        console.warn('구매가 완료되지 않음:', purchase);
+        logger.warn('🎯 [결제플로우] 구매가 완료되지 않음:', purchase);
       }
     } catch (error) {
-      console.error('구매 처리 실패:', error);
+      logger.error('🎯 [결제플로우] 구매 처리 실패:', error);
       Alert.alert(
         '구매 검증 실패',
-        '구매는 완료되었지만 검증에 실패했습니다. 고객 지원에 문의하세요.'
+        `구매는 완료되었지만 검증에 실패했습니다: ${error.message}`
       );
     } finally {
       setPurchaseLoading(false);
@@ -154,45 +206,63 @@ export default function UpgradeScreen({ navigation }) {
     ]).start();
   };
 
-  // 구독 활성화 함수 - 서버 검증 포함 (fallback 지원)
+  // 구독 활성화 함수 - 서버 검증 포함 (재시도 로직 추가)
   async function activateSubscription(purchase) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('사용자 정보를 찾을 수 없습니다.');
     
+    logger.log('🎯 [서버검증] 서버 검증 시작, 사용자 ID:', user.id);
+    
     let serverVerificationSuccess = false;
+    let lastError = null;
     
-    try {
-      // 서버사이드 구매 검증 시도
-      const { data, error } = await supabase.functions.invoke('verify-googleplaypay', {
-        body: {
-          purchaseToken: purchase.purchaseToken,
-          productId: purchase.productId || 'expertaccount',
-          packageName: 'com.anonymous.portfoliochatapp',
-          userId: user.id
-        }
-      });
-
-      if (error) {
-        console.warn('서버 검증 실패, fallback 로직 사용:', error);
-      } else if (data?.success) {
-        logger.log('구매 검증 성공:', data);
-        serverVerificationSuccess = true;
+    // 서버 검증 3회 재시도
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        logger.log(`🎯 [서버검증] 서버 검증 시도 ${attempt}/3`);
         
-        // ✅ 구매 성공 후 사용자 프로필 새로 불러오기 (useAuth의 전역 상태 업데이트)
-        await refreshUserProfile();
+        // 서버사이드 구매 검증 시도
+        const { data, error } = await supabase.functions.invoke('verify-googleplaypay', {
+          body: {
+            purchaseToken: purchase.purchaseToken,
+            productId: purchase.productId || 'expertaccount',
+            packageName: 'com.arld.app',
+            userId: user.id
+          }
+        });
+
+        logger.log(`🎯 [서버검증] 시도 ${attempt} 응답:`, { data, error });
+
+        if (error) {
+          lastError = error;
+          logger.warn(`🎯 [서버검증] 시도 ${attempt} 실패:`, error);
+        } else if (data?.success) {
+          logger.log('🎯 [서버검증] 검증 성공!', data);
+          serverVerificationSuccess = true;
+          break; // 성공하면 루프 종료
+        } else {
+          lastError = new Error(`서버 응답 실패: ${JSON.stringify(data)}`);
+          logger.warn(`🎯 [서버검증] 시도 ${attempt} 실패 - 응답 데이터:`, data);
+        }
+      } catch (error) {
+        lastError = error;
+        logger.warn(`🎯 [서버검증] 시도 ${attempt} 예외:`, error);
       }
-    } catch (error) {
-      console.warn('서버 검증 오류, fallback 로직 사용:', error);
+      
+      // 마지막 시도가 아니면 2초 대기
+      if (attempt < 3) {
+        logger.log(`🎯 [서버검증] 2초 후 재시도...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
     
-    // 서버 검증 실패 시 에러 처리 (더 이상 임시 활성화 안함)
+    // 서버 검증 실패 시 에러 처리
     if (!serverVerificationSuccess) {
-      logger.error('서버 검증 실패: 프리미엄 활성화 불가');
-      throw new Error('구매 검증에 실패했습니다. 고객 지원에 문의하세요.');
+      logger.error('🎯 [서버검증] 모든 시도 실패:', lastError);
+      throw new Error(`구매 검증에 실패했습니다: ${lastError?.message || '알 수 없는 오류'}`);
     }
     
-    // 프로필 새로고침
-    await refreshUserProfile();
+    logger.log('🎯 [서버검증] 최종 성공!');
   };
 
 

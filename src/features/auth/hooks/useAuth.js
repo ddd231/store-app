@@ -87,9 +87,12 @@ export function useAuth() {
           // 프리미엄 상태는 user.user_profiles.is_premium에서 확인
           
           // 계정 삭제 예약 확인
-          const deletionRequest = session.user.user_metadata?.deletion_request;
-          if (deletionRequest) {
-            await checkDeletionRequest(deletionRequest);
+          const deleteRequestedAt = session.user.user_metadata?.delete_requested_at;
+          if (deleteRequestedAt) {
+            await checkDeletionRequest({ 
+              requested_at: deleteRequestedAt,
+              scheduled_deletion_at: session.user.user_metadata?.scheduled_deletion_at 
+            });
           }
         }
       }
@@ -209,7 +212,11 @@ export function useAuth() {
   async function cancelAccountDeletion() {
     try {
       const { error } = await supabase.auth.updateUser({
-        data: { deletion_request: null }
+        data: { 
+          delete_requested_at: null,
+          scheduled_deletion_at: null,
+          deletion_reason: null
+        }
       });
 
       if (error) {
@@ -288,40 +295,55 @@ export function useAuth() {
   };
 
 
-  // 프로필 새로고침 함수
+  // 프로필 새로고침 함수 (강화된 로직)
   async function refreshUserProfile() {
     try {
+      logger.log('🔄 [프로필새로고침] 시작');
+      
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser) {
-        const { data: profile, error } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('id', currentUser.id)
-          .single();
-        
-        if (error) {
-          console.error('[useAuth] 프로필 새로고침 실패:', error);
-          return { success: false, error };
-        } else {
-          // 프로필 정보를 user 객체에 병합
-          const updatedUser = {
-            ...currentUser,
-            user_profiles: profile
-          };
-          setUser(updatedUser);
-          
-          // 프리미엄 상태는 user.user_profiles.is_premium에서 확인
-          
-          logger.log('[useAuth] ✅ 프로필 새로고침 완료:', {
-            is_premium: profile.is_premium,
-            premium_expires_at: profile.premium_expires_at
-          });
-          return { success: true, profile };
-        }
+      if (!currentUser) {
+        logger.warn('🔄 [프로필새로고침] 사용자 정보 없음');
+        return { success: false, error: '사용자 정보 없음' };
       }
-      return { success: false, error: '사용자 정보 없음' };
+      
+      logger.log('🔄 [프로필새로고침] 사용자 확인됨, 프로필 조회 중...');
+      
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+      
+      if (error) {
+        logger.error('🔄 [프로필새로고침] 프로필 조회 실패:', error);
+        return { success: false, error };
+      }
+      
+      if (!profile) {
+        logger.warn('🔄 [프로필새로고침] 프로필 데이터 없음');
+        return { success: false, error: '프로필 데이터 없음' };
+      }
+      
+      // 프로필 정보를 user 객체에 병합
+      const updatedUser = {
+        ...currentUser,
+        user_profiles: profile
+      };
+      
+      logger.log('🔄 [프로필새로고침] 상태 업데이트 중...', {
+        user_id: currentUser.id,
+        is_premium: profile.is_premium,
+        premium_expires_at: profile.premium_expires_at,
+        username: profile.username
+      });
+      
+      setUser(updatedUser);
+      
+      logger.log('🔄 [프로필새로고침] ✅ 완료! 프리미엄 상태:', profile.is_premium);
+      return { success: true, profile };
+      
     } catch (error) {
-      console.error('[useAuth] 프로필 새로고침 오류:', error);
+      logger.error('🔄 [프로필새로고침] 예외 발생:', error);
       return { success: false, error };
     }
   };

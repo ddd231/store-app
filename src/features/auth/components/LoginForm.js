@@ -26,7 +26,8 @@ export default function LoginForm({
   agreeToFreedom,
   setAgreeToFreedom,
   onShowTerms,
-  onShowPrivacy
+  onShowPrivacy,
+  showForgotPassword
 }) {
   const { t } = useLanguage();
 
@@ -69,7 +70,7 @@ export default function LoginForm({
         />
       </View>
 
-      {isLogin && (
+      {isLogin && showForgotPassword && (
         <View style={loginStyles.forgotPasswordContainer}>
           <TouchableOpacity onPress={onForgotPassword}>
             <Text style={loginStyles.forgotPasswordText}>

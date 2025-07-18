@@ -4,6 +4,7 @@ import { theme } from '../../../styles/theme';
 export const profileFooterStyles = StyleSheet.create({
   menuSection: {
     marginTop: theme.spacing.lg,
+    marginBottom: 200,
   },
   menuItem: {
     flexDirection: 'row',
@@ -22,18 +23,6 @@ export const profileFooterStyles = StyleSheet.create({
     ...theme.typography.body,
     marginLeft: theme.spacing.md,
     color: '#000000',
-  },
-  logoutButton: {
-    marginTop: theme.spacing.xl,
-    marginBottom: 100,
-    marginHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    alignItems: 'center',
-  },
-  logoutText: {
-    ...theme.typography.body,
-    color: theme.colors.error,
-    fontWeight: '600',
   },
   tabsContainer: {
     flexDirection: 'row',

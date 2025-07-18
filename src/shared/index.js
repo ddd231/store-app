@@ -17,6 +17,7 @@ export * from './hooks/useDebounce';
 export * from './utils/adminUtils';
 export * from './utils/errorUtils';
 export * from './utils/fileValidator';
+export * from './utils/fileUtils';
 export * from './utils/logger';
 export * from './utils/permissions';
 export * from './utils/rateLimiter';

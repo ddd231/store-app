@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARLD - 로그인 인증</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <div class="logo">
+                <h1>ARLD</h1>
+                <p>예술가를 위한 포트폴리오 & 채팅 플랫폼</p>
+            </div>
+            
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="email">이메일</label>
+                    <input type="email" id="email" name="email" placeholder="이메일을 입력하세요" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required>
+                </div>
+                
+                <button type="submit" class="login-button" id="loginButton">
+                    <span class="button-text">로그인</span>
+                    <span class="loading-spinner" id="loadingSpinner"></span>
+                </button>
+            </form>
+            
+            <div class="status-message" id="statusMessage"></div>
+            
+            <div class="divider">
+                <span>또는</span>
+            </div>
+            
+            <div class="app-download">
+                <p>아직 계정이 없으신가요?</p>
+                <button class="download-button" onclick="window.open('https://play.google.com/store/apps/details?id=com.arld.app', '_blank')">
+                    📱 앱에서 회원가입하기
+                </button>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 ARLD. 모든 권리 보유.</p>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>

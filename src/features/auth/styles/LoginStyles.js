@@ -5,7 +5,7 @@ const { width, height } = Dimensions.get('window');
 export const loginStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F5F1E8',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -39,6 +39,7 @@ export const loginStyles = StyleSheet.create({
     color: '#000000',
     textAlign: 'center',
     marginBottom: 40,
+    marginTop: 60,
   },
   toggleContainer: {
     flexDirection: 'row',
@@ -81,8 +82,8 @@ export const loginStyles = StyleSheet.create({
     position: 'relative',
   },
   input: {
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderWidth: 0,
+    borderColor: 'transparent',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -90,7 +91,7 @@ export const loginStyles = StyleSheet.create({
     backgroundColor: '#FAFAFA',
   },
   inputFocused: {
-    borderColor: '#007AFF',
+    borderColor: 'transparent',
     backgroundColor: '#FFFFFF',
   },
   passwordInput: {
@@ -120,13 +121,14 @@ export const loginStyles = StyleSheet.create({
   checkbox: {
     width: 20,
     height: 20,
-    borderWidth: 2,
-    borderColor: '#E0E0E0',
+    borderWidth: 0,
+    borderColor: 'transparent',
     borderRadius: 4,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
+    backgroundColor: '#E0E0E0',
   },
   checkedCheckbox: {
     backgroundColor: '#007AFF',
@@ -147,8 +149,8 @@ export const loginStyles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#007AFF',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderWidth: 0,
+    borderColor: 'transparent',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -168,8 +170,8 @@ export const loginStyles = StyleSheet.create({
   },
   signupButton: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderWidth: 0,
+    borderColor: 'transparent',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,

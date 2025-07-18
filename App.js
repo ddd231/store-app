@@ -32,22 +32,33 @@ import { queryClient } from './src/shared/services/queryClient';
 // Services
 import notificationService from './src/services/notificationService';
 
+// Subscription check utility
+async function checkExpiredSubscriptions() {
+  try {
+    console.log('[App] 구독 만료 체크 시작...');
+    const { supabase } = await import('./src/shared/index.js');
+    
+    const { data, error } = await supabase.functions.invoke('subscription-manager', {
+      body: { action: 'check_expiry' }
+    });
+
+    if (error) {
+      console.warn('[App] 구독 만료 체크 실패:', error);
+    } else {
+      console.log('[App] 구독 만료 체크 완료:', data);
+    }
+  } catch (error) {
+    console.warn('[App] 구독 만료 체크 오류:', error);
+  }
+}
+
 // Contexts
 import { LanguageProvider } from './src/contexts/LanguageContext';
 
-// IAP Context - Expo Go에서는 비활성화
-let withIAPContext;
-try {
-  if (Platform.OS !== 'web' && !__DEV__) {
-    withIAPContext = require('react-native-iap').withIAPContext;
-  } else {
-    // Expo Go나 개발 환경에서는 IAP 비활성화
-    withIAPContext = function(Component) { return Component; };
-  }
-} catch (error) {
-  // IAP 모듈 로드 실패 시 fallback
-  withIAPContext = function(Component) { return Component; };
-}
+// IAP Context - 완전히 비활성화 (개발 중)
+const withIAPContext = function(Component) { 
+  return Component; 
+};
 
 // AdMob 초기화 (모바일에서만)
 let mobileAds;
@@ -170,6 +181,9 @@ function App() {
             console.log('NavigationBar 설정 실패:', error);
           }
         }
+        
+        // 구독 만료 체크 (백그라운드에서 실행)
+        checkExpiredSubscriptions();
       }
       
       // 최소 2초간 로고 표시

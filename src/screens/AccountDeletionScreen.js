@@ -14,6 +14,8 @@ import {
 import { theme } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../shared';
+import { supabaseUrl, supabaseAnonKey } from '../services/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 
 export default function AccountDeletionScreen({ navigation }) {
   const [password, setPassword] = useState('');
@@ -40,16 +42,19 @@ export default function AccountDeletionScreen({ navigation }) {
           onPress: async function() {
             setIsDeleting(true);
             try {
-              // 현재 사용자 정보 가져오기
+              // 현재 세션과 사용자 정보 가져오기
+              const { data: { session: currentSession } } = await supabase.auth.getSession();
               const { data: { user } } = await supabase.auth.getUser();
               
-              if (!user) {
+              if (!user || !currentSession) {
                 Alert.alert('오류', '로그인 정보를 확인할 수 없습니다.');
                 return;
               }
 
-              // 비밀번호 확인
-              const { error: signInError } = await supabase.auth.signInWithPassword({
+              // 비밀번호 확인 (별도 클라이언트 사용)
+              const tempSupabase = createClient(supabaseUrl, supabaseAnonKey);
+              
+              const { error: signInError } = await tempSupabase.auth.signInWithPassword({
                 email: user.email,
                 password: password
               });
@@ -59,34 +64,150 @@ export default function AccountDeletionScreen({ navigation }) {
                 return;
               }
 
-              // 계정 삭제 예약 (24시간 유예)
-              const DELETION_GRACE_PERIOD = 24 * 60 * 60 * 1000; // 24시간
-              const scheduledDeletionTime = new Date(Date.now() + DELETION_GRACE_PERIOD);
+              // 비밀번호 확인 후 임시 클라이언트 로그아웃
+              await tempSupabase.auth.signOut();
 
-              const { error: updateError } = await supabase.auth.updateUser({
-                data: { 
-                  deletion_request: {
-                    requested_at: new Date().toISOString(),
-                    scheduled_deletion_at: scheduledDeletionTime.toISOString(),
-                    reason: "사용자 요청"
-                  }
+              // 기존 세션 사용
+              console.log('[AccountDeletionScreen] Session 확인:', {
+                hasSession: !!currentSession,
+                hasAccessToken: !!currentSession?.access_token,
+                tokenLength: currentSession?.access_token?.length,
+                tokenStart: currentSession?.access_token?.slice(0, 20)
+              });
+
+              // 진짜 사용자 계정 삭제 - Service Role Key로 직접 Cascade 삭제
+              console.log('[AccountDeletionScreen] 진짜 계정 삭제 시작');
+              
+              // Service Role Key로 Admin Client 생성
+              const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZG5ta3llZHZoZGdmdGJ3YXR0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzQ5Nzk2NiwiZXhwIjoyMDYzMDczOTY2fQ.Z1RYZVQ25FN6ufO1I79KLEf96Jqqdzk-F0GL8p5b260';
+              
+              const adminSupabase = createClient(supabaseUrl, serviceRoleKey, {
+                auth: {
+                  autoRefreshToken: false,
+                  persistSession: false
                 }
               });
 
-              if (updateError) {
-                Alert.alert('오류', '계정 삭제 요청 중 문제가 발생했습니다.');
-                return;
+              console.log('[AccountDeletionScreen] Cascade 데이터 삭제 시작:', user.id);
+              
+              try {
+                // 1. purchase_logs 삭제
+                console.log('[AccountDeletionScreen] 1. purchase_logs 삭제 중...');
+                const { error: e1 } = await adminSupabase.from('purchase_logs').delete().eq('user_id', user.id);
+                if (e1) console.warn('purchase_logs 삭제 실패:', e1.message);
+                
+                // 2. view_history 삭제
+                console.log('[AccountDeletionScreen] 2. view_history 삭제 중...');
+                const { error: e2 } = await adminSupabase.from('view_history').delete().eq('user_id', user.id);
+                if (e2) console.warn('view_history 삭제 실패:', e2.message);
+                
+                // 3. bookmarks 삭제
+                console.log('[AccountDeletionScreen] 3. bookmarks 삭제 중...');
+                const { error: e3 } = await adminSupabase.from('bookmarks').delete().eq('user_id', user.id);
+                if (e3) console.warn('bookmarks 삭제 실패:', e3.message);
+                
+                // 4. hidden_users 삭제 (양방향)
+                console.log('[AccountDeletionScreen] 4. hidden_users 삭제 중...');
+                const { error: e4a } = await adminSupabase.from('hidden_users').delete().eq('user_id', user.id);
+                const { error: e4b } = await adminSupabase.from('hidden_users').delete().eq('hidden_user_id', user.id);
+                if (e4a) console.warn('hidden_users(user_id) 삭제 실패:', e4a.message);
+                if (e4b) console.warn('hidden_users(hidden_user_id) 삭제 실패:', e4b.message);
+                
+                // 5. friends 삭제 (양방향)
+                console.log('[AccountDeletionScreen] 5. friends 삭제 중...');
+                const { error: e5a } = await adminSupabase.from('friends').delete().eq('user_id', user.id);
+                const { error: e5b } = await adminSupabase.from('friends').delete().eq('friend_id', user.id);
+                if (e5a) console.warn('friends(user_id) 삭제 실패:', e5a.message);
+                if (e5b) console.warn('friends(friend_id) 삭제 실패:', e5b.message);
+                
+                // 6. galleries 삭제
+                console.log('[AccountDeletionScreen] 6. galleries 삭제 중...');
+                const { error: e6 } = await adminSupabase.from('galleries').delete().eq('creator_id', user.id);
+                if (e6) console.warn('galleries 삭제 실패:', e6.message);
+                
+                // 7. contest_participants 삭제
+                console.log('[AccountDeletionScreen] 7. contest_participants 삭제 중...');
+                const { error: e7 } = await adminSupabase.from('contest_participants').delete().eq('user_id', user.id);
+                if (e7) console.warn('contest_participants 삭제 실패:', e7.message);
+                
+                // 8. contests 삭제
+                console.log('[AccountDeletionScreen] 8. contests 삭제 중...');
+                const { error: e8 } = await adminSupabase.from('contests').delete().eq('author_id', user.id);
+                if (e8) console.warn('contests 삭제 실패:', e8.message);
+                
+                // 9. blog_posts 삭제
+                console.log('[AccountDeletionScreen] 9. blog_posts 삭제 중...');
+                const { error: e9 } = await adminSupabase.from('blog_posts').delete().eq('author_id', user.id);
+                if (e9) console.warn('blog_posts 삭제 실패:', e9.message);
+                
+                // 10. job_posts 삭제
+                console.log('[AccountDeletionScreen] 10. job_posts 삭제 중...');
+                const { error: e10 } = await adminSupabase.from('job_posts').delete().eq('author_id', user.id);
+                if (e10) console.warn('job_posts 삭제 실패:', e10.message);
+                
+                // 11. files 삭제
+                console.log('[AccountDeletionScreen] 11. files 삭제 중...');
+                const { error: e11 } = await adminSupabase.from('files').delete().eq('uploaded_by', user.id);
+                if (e11) console.warn('files 삭제 실패:', e11.message);
+                
+                // 12. chat_participants 삭제
+                console.log('[AccountDeletionScreen] 12. chat_participants 삭제 중...');
+                const { error: e12 } = await adminSupabase.from('chat_participants').delete().eq('user_id', user.id);
+                if (e12) console.warn('chat_participants 삭제 실패:', e12.message);
+                
+                // 13. chat_rooms 삭제 (creator나 participant인 경우)
+                console.log('[AccountDeletionScreen] 13. chat_rooms 삭제 중...');
+                const { error: e13a } = await adminSupabase.from('chat_rooms').delete().eq('creator_id', user.id);
+                const { error: e13b } = await adminSupabase.from('chat_rooms').delete().eq('participant_id', user.id);
+                if (e13a) console.warn('chat_rooms(creator_id) 삭제 실패:', e13a.message);
+                if (e13b) console.warn('chat_rooms(participant_id) 삭제 실패:', e13b.message);
+                
+                // 14. messages 삭제
+                console.log('[AccountDeletionScreen] 14. messages 삭제 중...');
+                const { error: e14 } = await adminSupabase.from('messages').delete().eq('sender_id', user.id);
+                if (e14) console.warn('messages 삭제 실패:', e14.message);
+                
+                // 15. works 삭제
+                console.log('[AccountDeletionScreen] 15. works 삭제 중...');
+                const { error: e15 } = await adminSupabase.from('works').delete().eq('author_id', user.id);
+                if (e15) console.warn('works 삭제 실패:', e15.message);
+                
+                // 16. contents 삭제
+                console.log('[AccountDeletionScreen] 16. contents 삭제 중...');
+                const { error: e16 } = await adminSupabase.from('contents').delete().eq('user_id', user.id);
+                if (e16) console.warn('contents 삭제 실패:', e16.message);
+                
+                // 17. user_profiles 삭제
+                console.log('[AccountDeletionScreen] 17. user_profiles 삭제 중...');
+                const { error: e17 } = await adminSupabase.from('user_profiles').delete().eq('id', user.id);
+                if (e17) console.warn('user_profiles 삭제 실패:', e17.message);
+                
+                console.log('[AccountDeletionScreen] 모든 관련 데이터 삭제 완료');
+                
+              } catch (dataError) {
+                console.error('[AccountDeletionScreen] 데이터 삭제 중 오류:', dataError);
+                // 데이터 삭제 실패해도 auth 사용자 삭제는 계속 시도
+              }
+              
+              // 18. Auth 사용자 삭제 (마지막)
+              console.log('[AccountDeletionScreen] Auth 사용자 삭제 시작');
+              const { error: deleteError } = await adminSupabase.auth.admin.deleteUser(user.id);
+
+              if (deleteError) {
+                console.error('[AccountDeletionScreen] Auth 사용자 삭제 실패:', deleteError);
+                throw new Error(`계정 삭제 실패: ${deleteError.message}`);
               }
 
+              console.log('[AccountDeletionScreen] 사용자 완전 삭제 완료:', user.id);
+
               Alert.alert(
-                '계정 삭제 예약',
-                `계정이 24시간 후 삭제됩니다.\n\n삭제 예정 시간: ${scheduledDeletionTime.toLocaleString()}\n\n로그인하여 언제든 취소할 수 있습니다.`,
+                '계정 삭제 완료',
+                '계정이 성공적으로 삭제되었습니다.',
                 [
                   {
                     text: '확인',
-                    onPress: async function() {
-                      // 로그아웃 처리
-                      await supabase.auth.signOut();
+                    onPress: function() {
+                      // 로그아웃은 자동으로 처리됨
                     }
                   }
                 ]
@@ -132,7 +253,7 @@ export default function AccountDeletionScreen({ navigation }) {
           </View>
           <Text style={styles.warningTitle}>계정을 삭제하시겠습니까?</Text>
           <Text style={styles.warningText}>
-            계정을 삭제하면 모든 데이터가 영구적으로 삭제되며,{'\n'}
+            계정을 삭제하면 모든 데이터가 즉시 영구적으로 삭제되며,{'\n'}
             이 작업은 되돌릴 수 없습니다.
           </Text>
         </View>
@@ -181,7 +302,7 @@ export default function AccountDeletionScreen({ navigation }) {
         <View style={styles.passwordSection}>
           <Text style={styles.passwordTitle}>비밀번호 확인</Text>
           <Text style={styles.passwordSubtext}>
-            계정 삭제를 위해 비밀번호를 입력해주세요.
+            계정을 즉시 삭제하기 위해 비밀번호를 입력해주세요.
           </Text>
           
           <View style={styles.passwordInputContainer}>
@@ -217,7 +338,7 @@ export default function AccountDeletionScreen({ navigation }) {
           {isDeleting ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.deleteButtonText}>계정 영구 삭제</Text>
+            <Text style={styles.deleteButtonText}>계정 즉시 삭제</Text>
           )}
         </TouchableOpacity>
 

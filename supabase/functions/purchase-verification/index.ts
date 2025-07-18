@@ -46,7 +46,7 @@ serve(async (req) => {
 
     // Parse request body
     const requestBody: PurchaseVerificationRequest = await req.json();
-    const { purchaseToken, productId, userId, packageName = 'com.anonymous.portfoliochatapp' } = requestBody;
+    const { purchaseToken, productId, userId, packageName = 'com.arld.app' } = requestBody;
 
     // Validate required fields
     if (!purchaseToken || !productId || !userId) {

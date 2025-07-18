@@ -3,7 +3,7 @@ import { Alert } from 'react-native';
 import { supabase, RateLimitedActions, showErrorAlert, showSuccessAlert, logger } from '../../../shared';
 import { useLanguage } from '../../../contexts/LanguageContext';
 
-export function useLoginLogic(onLoginSuccess) {
+export function useLoginLogic(onLoginSuccess, onLoginFailed) {
   const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -41,6 +41,9 @@ export function useLoginLogic(onLoginSuccess) {
         } else {
           showErrorAlert(t('loginFailed'), error.message);
         }
+        if (onLoginFailed) {
+          onLoginFailed();
+        }
         return;
       }
 
@@ -53,10 +56,13 @@ export function useLoginLogic(onLoginSuccess) {
     } catch (error) {
       logger.error('Login exception:', error);
       showErrorAlert(t('loginFailed'), t('unexpectedError'));
+      if (onLoginFailed) {
+        onLoginFailed();
+      }
     } finally {
       setIsLoading(false);
     }
-  }, [t, validateEmail, validatePassword, onLoginSuccess]);
+  }, [t, validateEmail, validatePassword, onLoginSuccess, onLoginFailed]);
 
   const handleSignup = useCallback(async function(email, password, username) {
     if (!validateEmail(email)) {

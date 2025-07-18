@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList, RefreshControl, Platform, Alert } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withTiming, runOnJS } from 'react-native-reanimated';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { View, Text, StyleSheet, FlatList, RefreshControl, Platform } from 'react-native';
 import { theme } from '../styles/theme';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getJobPosts } from '../features/job';
 import { getBlogPosts } from '../features/blog';
 import { getContests } from '../features/contest';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase, isAdminUser, checkPremiumOrAdminAccess } from '../shared';
 import { useAuth } from '../features/auth';
+import BoardTabs from './components/BoardTabs';
+import BoardHeader from './components/BoardHeader';
+import RecruitCard from './components/RecruitCard';
+import BlogCard from './components/BlogCard';
+import ContestCard from './components/ContestCard';
+import EmptyStates from './components/EmptyStates';
 // AdMob 모듈을 조건부로 import
 let BannerAd, BannerAdSize, TestIds;
 try {
@@ -17,7 +21,7 @@ try {
   BannerAdSize = AdMob.BannerAdSize;
   TestIds = AdMob.TestIds;
 } catch (error) {
-  logger.log('AdMob not available in Expo Go');
+  console.log('AdMob not available in Expo Go');
 }
 
 // AdMob 광고 단위 ID
@@ -159,8 +163,8 @@ export default function BoardScreen({ navigation }) {
     });
   };
 
-  // 카테고리별 데이터 필터링
-  function getFilteredData() {
+  // 카테고리별 데이터 필터링 (메모이제이션 적용)
+  const filteredData = useMemo(() => {
     switch (selectedCategory) {
       case 'recruit':
         // 실제 채용공고 데이터를 변환하여 반환
@@ -213,79 +217,50 @@ export default function BoardScreen({ navigation }) {
       default:
         return [];
     }
-  };
+  }, [selectedCategory, jobPosts, blogPosts, contests, contestFilter]);
 
-  const filteredData = getFilteredData();
+  // 이벤트 핸들러들 (useCallback 적용)
+  const handleJobPress = useCallback((jobId) => {
+    navigation.navigate('JobDetail', { jobId });
+  }, [navigation]);
 
+  const handleBlogPress = useCallback((blog) => {
+    navigation.navigate('BlogDetail', { blog });
+  }, [navigation]);
+
+  const handleContestPress = useCallback((contest) => {
+    navigation.navigate('ContestDetail', { contest });
+  }, [navigation]);
+
+  const handleCategoryChange = useCallback((category) => {
+    setSelectedCategory(category);
+  }, []);
+
+  const handleFilterChange = useCallback((filter) => {
+    setContestFilter(filter);
+  }, []);
 
   function renderItem({ item }) {
     if (item.type === 'recruit') {
       return (
-        <TouchableOpacity 
-          style={[styles.card, styles.recruitCard]}
-          onPress={function() { navigation.navigate('JobDetail', { jobId: item.id }); }}
-          activeOpacity={1.0}
-        >
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          
-          <Text style={styles.companyName}>{item.company}</Text>
-          <Text style={styles.location}>{item.location}</Text>
-          
-          <Text style={styles.description} numberOfLines={3}>
-            {item.description}
-          </Text>
-          
-          <View style={styles.cardFooter}>
-            <View style={styles.spacer} />
-          </View>
-        </TouchableOpacity>
+        <RecruitCard 
+          item={item}
+          onPress={handleJobPress}
+        />
       );
     } else if (item.type === 'contest') {
       return (
-        <TouchableOpacity 
-          style={[styles.card, styles.contestCard]}
-          onPress={function() { navigation.navigate('ContestDetail', { contest: item }); }}
-          activeOpacity={1.0}
-        >
-          <Text style={[styles.cardTitle, styles.contestTitle]}>{item.title}</Text>
-          
-          <Text style={[styles.organizerName, styles.contestText]}>{item.organizer}</Text>
-          <Text style={[styles.period, styles.contestText]}>{item.period}</Text>
-          
-          <Text style={[styles.description, styles.contestDescription]} numberOfLines={2}>
-            {item.description}
-          </Text>
-          
-          <View style={styles.cardFooter}>
-            <Text style={[styles.prize, styles.contestPrize]}>{item.prize}</Text>
-            <View style={styles.spacer} />
-          </View>
-        </TouchableOpacity>
+        <ContestCard 
+          item={item}
+          onPress={handleContestPress}
+        />
       );
     } else if (item.type === 'blog') {
       return (
-        <TouchableOpacity 
-          style={styles.card}
-          onPress={function() { navigation.navigate('BlogDetail', { blog: item }); }}
-          activeOpacity={1.0}
-        >
-          <Text style={styles.cardTitle}>{item.title}</Text>
-          
-          <Text style={styles.authorName}>{item.author}</Text>
-          <Text style={styles.dateInfo}>{item.date}</Text>
-          
-          <Text style={styles.description} numberOfLines={3}>
-            {item.description}
-          </Text>
-          
-          <View style={styles.cardFooter}>
-            <View style={styles.tagContainer}>
-              {item.tags.map(function(tag, index) { return (
-                <Text key={index} style={styles.tag}>#{tag}</Text>
-              );})}
-            </View>
-          </View>
-        </TouchableOpacity>
+        <BlogCard 
+          item={item}
+          onPress={handleBlogPress}
+        />
       );
     }
   };
@@ -293,140 +268,23 @@ export default function BoardScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* 카테고리 탭 */}
-      <View style={styles.tabContainer}>
-        {categories.map(function(category) { return (
-          <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.tabButton,
-              selectedCategory === category.id && styles.tabButtonActive
-            ]}
-            onPress={function() { setSelectedCategory(category.id); }}
-          >
-            <Text style={[
-              styles.tabText,
-              selectedCategory === category.id && styles.tabTextActive
-            ]}>
-              {category.name}
-            </Text>
-          </TouchableOpacity>
-        ); })}
-      </View>
+      <BoardTabs 
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onCategoryChange={handleCategoryChange}
+      />
 
-      {/* 업로드/작성 버튼 */}
-      <View style={styles.sectionHeader}>
-        {selectedCategory === 'recruit' && (
-          <Text style={styles.sectionTitle}>{t('jobPostsList')}</Text>
-        )}
-        {selectedCategory === 'blog' && (
-          <Text style={styles.sectionTitle}>{t('blog')}</Text>
-        )}
-        {selectedCategory === 'contest' && (
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            style={styles.filterContainer}
-          >
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                contestFilter === 'all' && styles.filterButtonActive
-              ]}
-              onPress={function() { setContestFilter('all'); }}
-            >
-              <Text style={[
-                styles.filterText,
-                contestFilter === 'all' && styles.filterTextActive
-              ]}>{t('all')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                contestFilter === 'ongoing' && styles.filterButtonActive
-              ]}
-              onPress={function() { setContestFilter('ongoing'); }}
-            >
-              <Text style={[
-                styles.filterText,
-                contestFilter === 'ongoing' && styles.filterTextActive
-              ]}>{t('ongoing')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                contestFilter === 'ended' && styles.filterButtonActive
-              ]}
-              onPress={function() { setContestFilter('ended'); }}
-            >
-              <Text style={[
-                styles.filterText,
-                contestFilter === 'ended' && styles.filterTextActive
-              ]}>{t('ended')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                contestFilter === 'upcoming' && styles.filterButtonActive
-              ]}
-              onPress={function() { setContestFilter('upcoming'); }}
-            >
-              <Text style={[
-                styles.filterText,
-                contestFilter === 'upcoming' && styles.filterTextActive
-              ]}>{t('upcoming')}</Text>
-            </TouchableOpacity>
-          </ScrollView>
-        )}
-        <View style={styles.spacer} />
-        {selectedCategory === 'recruit' && (
-          <TouchableOpacity 
-            style={styles.postJobButton}
-            onPress={function() {
-              if (!user) {
-                navigation.navigate('Login');
-                return;
-              }
-
-              if (!checkPremiumOrAdminAccess(user)) {
-                navigation.navigate('Upgrade');
-                return;
-              }
-
-              navigation.navigate('JobPost');
-            }}
-          >
-            <Text style={styles.postJobButtonText}>{t('postJob')}</Text>
-          </TouchableOpacity>
-        )}
-        {selectedCategory === 'blog' && isAdmin && (
-          <TouchableOpacity 
-            style={styles.postJobButton}
-            onPress={function() { navigation.navigate('BlogEdit'); }}
-          >
-            <Text style={styles.postJobButtonText}>{t('writeBlog')}</Text>
-          </TouchableOpacity>
-        )}
-        {selectedCategory === 'contest' && (
-          <TouchableOpacity 
-            style={styles.plusButton}
-            onPress={function() {
-              if (!user) {
-                navigation.navigate('Login');
-                return;
-              }
-
-              if (!checkPremiumOrAdminAccess(user)) {
-                navigation.navigate('Upgrade');
-                return;
-              }
-
-              navigation.navigate('ContestEdit');
-            }}
-          >
-            <Ionicons name="add" size={24} color="white" />
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* 헤더 및 액션 버튼 */}
+      <BoardHeader 
+        selectedCategory={selectedCategory}
+        contestFilter={contestFilter}
+        onFilterChange={handleFilterChange}
+        isAdmin={isAdmin}
+        user={user}
+        navigation={navigation}
+        checkPremiumOrAdminAccess={checkPremiumOrAdminAccess}
+        t={t}
+      />
 
       {/* 컨텐츠 리스트 */}
       {selectedCategory === 'contest' ? (
@@ -447,9 +305,7 @@ export default function BoardScreen({ navigation }) {
             />
           }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>{t('noContests')}</Text>
-            </View>
+            <EmptyStates selectedCategory="contest" t={t} />
           }
         />
       ) : (
@@ -468,11 +324,7 @@ export default function BoardScreen({ navigation }) {
             />
           }
           ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>
-                {selectedCategory === 'blog' ? t('noBlogs') : t('noJobPosts')}
-              </Text>
-            </View>
+            <EmptyStates selectedCategory={selectedCategory} t={t} />
           }
         />
       )}
@@ -484,7 +336,7 @@ export default function BoardScreen({ navigation }) {
             unitId={adUnitId}
             size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
             onAdLoaded={function() {
-              logger.log('광고 로드 완료');
+              console.log('광고 로드 완료');
             }}
             onAdFailedToLoad={function(error) {
               console.error('광고 로드 실패:', error);
@@ -501,230 +353,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  header: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: 60,
-    paddingBottom: theme.spacing.md,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: theme.colors.text.primary,
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    marginHorizontal: theme.spacing.lg,
-    marginTop: 60, // 상태바 높이만큼 여백 추가
-    marginBottom: theme.spacing.lg,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: theme.spacing.sm,
-    alignItems: 'center',
-    borderRadius: theme.borderRadius.small,
-    backgroundColor: 'transparent', // 기본적으로 투명 배경
-  },
-  tabButtonActive: {
-    backgroundColor: theme.colors.primary,
-  },
-  tabText: {
-    ...theme.typography.body,
-    color: theme.colors.text.secondary,
-    fontWeight: '500',
-  },
-  tabTextActive: {
-    color: 'white',
-    fontWeight: '600',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-  },
-  sectionTitle: {
-    ...theme.typography.body,
-    fontWeight: 'bold',
-  },
-  postJobButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.full,
-  },
-  postJobButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
   listContent: {
     paddingBottom: 160, // 광고 공간 확보를 위해 증가
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 0,
-    padding: theme.spacing.lg,
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: theme.spacing.sm,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: theme.spacing.sm,
-  },
-  bookmarkButton: {
-    padding: 4,
-  },
-  companyName: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  location: {
-    fontSize: 12,
-    color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.sm,
-  },
-  jobDescription: {
-    ...theme.typography.body,
-    color: theme.colors.text.secondary,
-    lineHeight: 20,
-    marginBottom: theme.spacing.md,
-  },
-  jobFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  salary: {
-    ...theme.typography.body,
-    fontWeight: '600',
-    color: theme.colors.text.primary,
-  },
-  applyButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.small,
-  },
-  applyButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  organizerName: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  period: {
-    fontSize: 12,
-    color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.sm,
-  },
-  authorName: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  dateInfo: {
-    fontSize: 12,
-    color: theme.colors.text.secondary,
-    marginBottom: theme.spacing.sm,
-  },
-  description: {
-    fontSize: 13,
-    color: theme.colors.text.secondary,
-    lineHeight: 18,
-    marginBottom: theme.spacing.md,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  prize: {
-    ...theme.typography.body,
-    fontWeight: 'bold',
-    color: theme.colors.primary,
-  },
-  tagContainer: {
-    flexDirection: 'row',
-    flex: 1,
-    flexWrap: 'wrap',
-  },
-  tag: {
-    ...theme.typography.caption,
-    color: theme.colors.text.secondary,
-    marginRight: theme.spacing.sm,
-  },
-  actionButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.borderRadius.full,
-  },
-  actionButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  spacer: {
-    flex: 1,
-  },
-  contestCard: {
-    flex: 1,
-    marginHorizontal: theme.spacing.xs,
-    marginLeft: 0,
-    marginRight: theme.spacing.sm,
   },
   row: {
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.lg,
-  },
-  contestTitle: {
-    fontSize: 13,
-  },
-  contestText: {
-    fontSize: 11,
-  },
-  contestDescription: {
-    fontSize: 11,
-    lineHeight: 16,
-  },
-  contestPrize: {
-    fontSize: 12,
-  },
-  contestButton: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-    paddingHorizontal: theme.spacing.lg,
-  },
-  emptyText: {
-    ...theme.typography.body,
-    color: theme.colors.text.secondary,
-    textAlign: 'center',
   },
   adContainer: {
     position: 'absolute',
@@ -734,41 +368,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  filterContainer: {
-    flexDirection: 'row',
-    marginRight: theme.spacing.sm,
-  },
-  filterButton: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
-    marginRight: theme.spacing.xs,
-    borderRadius: theme.borderRadius.full,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-  },
-  filterButtonActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
-  },
-  filterText: {
-    fontSize: 14,
-    color: theme.colors.text.secondary,
-    fontWeight: '500',
-  },
-  filterTextActive: {
-    color: 'white',
-  },
-  plusButton: {
-    backgroundColor: theme.colors.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  recruitCard: {
-    padding: theme.spacing.md,
   },
 });
 

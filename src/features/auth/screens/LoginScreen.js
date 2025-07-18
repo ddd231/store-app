@@ -28,6 +28,7 @@ export default function LoginScreen({ navigation, onLoginSuccess }) {
   const [agreeToFreedom, setAgreeToFreedom] = useState(false);
   const [termsModalVisible, setTermsModalVisible] = useState(false);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [loginAttempted, setLoginAttempted] = useState(false);
   
   const { t } = useLanguage();
 
@@ -38,7 +39,7 @@ export default function LoginScreen({ navigation, onLoginSuccess }) {
     handleTestLogin,
     handleTestSignup,
     handleForgotPassword
-  } = useLoginLogic(onLoginSuccess);
+  } = useLoginLogic(onLoginSuccess, function() { setLoginAttempted(true); });
 
   const isFormValid = useMemo(function() {
     if (isLogin) {
@@ -72,7 +73,8 @@ export default function LoginScreen({ navigation, onLoginSuccess }) {
   return (
     <KeyboardAvoidingView 
       style={loginStyles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
     >
       <ScrollView 
         contentContainerStyle={loginStyles.scrollContainer}
@@ -105,6 +107,7 @@ export default function LoginScreen({ navigation, onLoginSuccess }) {
             setAgreeToFreedom={setAgreeToFreedom}
             onShowTerms={function() { setTermsModalVisible(true); }}
             onShowPrivacy={function() { setPrivacyModalVisible(true); }}
+            showForgotPassword={loginAttempted}
           />
 
         </View>

@@ -28,14 +28,14 @@ export interface PurchaseVerificationResponse {
  * @param purchaseToken - Google Play에서 받은 구매 토큰
  * @param productId - 구독 상품 ID (예: 'expertaccount')
  * @param userId - 사용자 UUID
- * @param packageName - 앱 패키지명 (기본값: 'com.anonymous.portfoliochatapp')
+ * @param packageName - 앱 패키지명 (기본값: 'com.arld.app')
  * @returns 검증 결과
  */
 export async function verifyPurchase(
   purchaseToken: string,
   productId: string,
   userId: string,
-  packageName: string = 'com.anonymous.portfoliochatapp'
+  packageName: string = 'com.arld.app'
 ): Promise<PurchaseVerificationResponse> {
   try {
     if (!purchaseToken || !productId || !userId) {

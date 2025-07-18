@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "portfolio-chat-app",
-    "slug": "portfolio-chat-app",
+    "name": "Arld",
+    "slug": "arld",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "jsEngine": "hermes",
-    "scheme": "portfoliochatapp",
+    "scheme": "arld",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.portfoliochatapp",
+      "bundleIdentifier": "com.arld.app",
       "jsEngine": "hermes"
     },
     "android": {
@@ -24,7 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": false,
-      "package": "com.anonymous.portfoliochatapp",
+      "package": "com.arld.app",
       "jsEngine": "hermes",
       "permissions": [
         "com.android.vending.BILLING",
@@ -38,7 +38,7 @@
           "action": "VIEW",
           "data": [
             {
-              "scheme": "portfoliochatapp"
+              "scheme": "arld"
             }
           ],
           "category": [
@@ -55,12 +55,12 @@
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png",
-      "name": "ARLD STORE",
-      "shortName": "ARLD"
+      "name": "Arld",
+      "shortName": "Arld"
     },
     "extra": {
       "eas": {
-        "projectId": "c7ae9ecf-1b7b-4340-90e0-178d39dd7c3e"
+        "projectId": "34dab1a6-a475-4776-8d6f-6791006aad00"
       }
     },
     "plugins": [
@@ -79,7 +79,8 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
-            "extraProguardRules": "-keep class com.facebook.** {*;}\n-keep class com.facebook.react.** {*;}\n-keep class com.android.billingclient.** {*;}\n-keep class com.android.vending.billing.** {*;}\n-keep class com.swmansion.** {*;}\n-keep class io.expo.** {*;}\n-keep class expo.modules.** {*;}\n-keep class com.anonymous.portfoliochatapp.** {*;}\n-keep class com.dooboolab.** {*;}\n-keep class org.reactnative.** {*;}\n-keep class com.reactnativeiap.** {*;}\n-keepclassmembers class * {\n    @expo.modules.core.ExpoMethod *;\n    @expo.modules.core.ExpoProperty *;\n}\n-keepclassmembers class com.dooboolab.** {\n    public *;\n}\n-keepclassmembers class org.reactnative.** {\n    public *;\n}\n-dontwarn com.android.billingclient.**\n-dontwarn io.expo.**\n-dontwarn expo.modules.**\n-dontwarn com.dooboolab.**\n-dontwarn org.reactnative.**"
+            "playBillingSdkVersion": "8.0.0",
+            "extraProguardRules": "-keep class com.facebook.** {*;}\n-keep class com.facebook.react.** {*;}\n-keep class com.android.billingclient.** {*;}\n-keep class com.android.vending.billing.** {*;}\n-keep class com.swmansion.** {*;}\n-keep class io.expo.** {*;}\n-keep class expo.modules.** {*;}\n-keep class com.arld.app.** {*;}\n-keep class com.dooboolab.** {*;}\n-keep class org.reactnative.** {*;}\n-keep class com.reactnativeiap.** {*;}\n-keepclassmembers class * {\n    @expo.modules.core.ExpoMethod *;\n    @expo.modules.core.ExpoProperty *;\n}\n-keepclassmembers class com.dooboolab.** {\n    public *;\n}\n-keepclassmembers class org.reactnative.** {\n    public *;\n}\n-dontwarn com.android.billingclient.**\n-dontwarn io.expo.**\n-dontwarn expo.modules.**\n-dontwarn com.dooboolab.**\n-dontwarn org.reactnative.**"
           }
         }
       ],

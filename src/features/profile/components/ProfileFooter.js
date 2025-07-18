@@ -38,9 +38,6 @@ export default function ProfileFooter({ navigation, isOwnProfile, menuItems }) {
             })}
           </View>
 
-          <TouchableOpacity style={profileFooterStyles.logoutButton}>
-            <Text style={profileFooterStyles.logoutText}>{t('logout')}</Text>
-          </TouchableOpacity>
         </>
       )}
     </View>

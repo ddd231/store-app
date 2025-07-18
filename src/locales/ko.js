@@ -62,7 +62,7 @@ export default {
   blog: '블로그',
   
   // 검색
-  searchPlaceholder: '검색어를 입력하세요',
+  searchPlaceholder: '',
   noResults: '검색 결과가 없습니다',
   
   // 오류 메시지
@@ -322,6 +322,8 @@ ARLD는 다음의 목적을 위하여 개인정보를 처리합니다.
   renameChatRoom: '채팅방이름수정',
   newChatRoomName: '새로운 채팅방 이름',
   leaveChatRoom: '채팅방나가기',
+  confirmLeaveChatRoom: '정말로 이 채팅방을 나가시겠습니까?',
+  leave: '나가기',
   searchFriend: '친구 검색...',
   startChatting: '채팅 시작하기',
   noSearchResults: '검색 결과가 없습니다',

@@ -1,4 +1,4 @@
-import { supabase, uploadFileToSupabase, getCurrentUserId, RateLimitedActions } from '../../../shared';
+import { supabase, uploadFileToSupabase, getCurrentUserId, RateLimitedActions, logger } from '../../../shared';
 import * as Localization from 'expo-localization';
 
 const WORKS_BUCKET = 'works';

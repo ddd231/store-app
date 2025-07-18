@@ -62,7 +62,7 @@ export default {
   blog: 'ブログ',
   
   // 検索
-  searchPlaceholder: '検索キーワードを入力',
+  searchPlaceholder: '',
   noResults: '検索結果がありません',
   
   // エラーメッセージ

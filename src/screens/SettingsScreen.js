@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase, logger } from '../shared';
+import { checkPremiumAccess } from '../shared/utils/premiumUtils';
 import { useAuth } from '../features/auth/hooks/useAuth';
 import { useLanguage } from '../contexts/LanguageContext';
 
@@ -231,12 +232,28 @@ export default function SettingsScreen({ navigation }) {
         navigation.navigate('PasswordReset');
         break;
       case 'hidden_users':
-        const isPremium = user?.user_profiles?.is_premium;
-        const isAdmin = user?.user_profiles?.is_admin;
-        if (isPremium || isAdmin) {
-          navigation.navigate('HiddenUsers');
-        } else {
-          navigation.navigate('Upgrade');
+        // 프리미엄 권한 체크 (만료일 포함)
+        try {
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (!currentUser) {
+            Alert.alert('오류', '로그인이 필요합니다.');
+            return;
+          }
+
+          const accessResult = await checkPremiumAccess(currentUser.id);
+          
+          if (accessResult.isPremium || accessResult.isAdmin) {
+            navigation.navigate('HiddenUsers');
+          } else {
+            const message = accessResult.isExpired 
+              ? '구독이 만료되었습니다. 사용자 숨김 기능은 전문가 멤버십 전용 기능입니다.'
+              : '사용자 숨김 기능은 전문가 멤버십 전용 기능입니다.';
+            Alert.alert('전문가 멤버십 필요', message);
+            navigation.navigate('Upgrade');
+          }
+        } catch (error) {
+          console.error('프로필 조회 오류:', error);
+          Alert.alert('오류', '권한을 확인할 수 없습니다.');
         }
         break;
       case 'delete_account':

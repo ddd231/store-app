@@ -254,7 +254,7 @@ serve(async (req) => {
 
     // 요청 본문 파싱
     const body: PurchaseVerificationRequest = await req.json();
-    const { purchaseToken, productId, userId, packageName = 'com.anonymous.portfoliochatapp' } = body;
+    const { purchaseToken, productId, userId, packageName = 'com.arld.app' } = body;
 
     console.log('=== Google Play 구매 검증 시작 ===');
     console.log('Product ID:', productId);

@@ -19,23 +19,36 @@ export default function HomeMenu({ visible, onClose, navigation }) {
 
   async function loadUserData() {
     try {
+      console.log('[HomeMenu] 사용자 데이터 로드 시작');
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUser(user);
+        console.log('[HomeMenu] 사용자 정보:', user.id);
         
         // 사용자 프로필 로드
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('id', user.id)
           .single();
           
+        console.log('[HomeMenu] 프로필 조회 결과:', { profile, error });
+          
         if (profile) {
           setUserProfile(profile);
+          console.log('[HomeMenu] 프로필 설정 완료:', {
+            is_premium: profile.is_premium,
+            is_admin: profile.is_admin
+          });
+        } else {
+          console.warn('[HomeMenu] 프로필이 없습니다');
+          setUserProfile(null);
         }
+      } else {
+        console.warn('[HomeMenu] 사용자가 없습니다');
       }
     } catch (error) {
-      if (__DEV__) console.error('사용자 정보 로드 오류:', error);
+      console.error('[HomeMenu] 사용자 정보 로드 오류:', error);
     }
   };
 
@@ -68,6 +81,8 @@ export default function HomeMenu({ visible, onClose, navigation }) {
   ];
 
   async function handleMenuPress(item) {
+    console.log('[HomeMenu] 메뉴 클릭:', item.id);
+    
     if (item.id === 'store') {
       // arld store는 웹으로 이동
       const storeUrl = process.env.EXPO_PUBLIC_STORE_URL || 'https://arldstore.netlify.app';
@@ -92,11 +107,42 @@ export default function HomeMenu({ visible, onClose, navigation }) {
         Alert.alert(t('error'), 'Failed to send email.');
       }
       onClose();
+    } else if (item.id === 'view_history') {
+      console.log('[HomeMenu] 기록 메뉴 클릭 - 프리미엄 상태 확인');
+      console.log('[HomeMenu] 현재 userProfile:', userProfile);
+      console.log('[HomeMenu] is_premium:', userProfile?.is_premium);
+      console.log('[HomeMenu] is_admin:', userProfile?.is_admin);
+      
+      // 기록 메뉴 - 프리미엄 상태 확인 후 이동
+      if (!userProfile?.is_premium && !userProfile?.is_admin) {
+        console.log('[HomeMenu] 프리미엄 권한 없음 - 업그레이드 알림 표시');
+        Alert.alert(
+          t('premiumRequired'),
+          t('upgradeToViewHistory'),
+          [
+            { text: t('cancel'), style: 'cancel' },
+            { 
+              text: t('upgrade'), 
+              onPress: function() {
+                console.log('[HomeMenu] 업그레이드 페이지로 이동');
+                navigation.navigate('Upgrade');
+                onClose();
+              }
+            }
+          ]
+        );
+        return;
+      }
+      console.log('[HomeMenu] 프리미엄 권한 있음 - ViewHistory로 이동');
+      navigation.navigate('ViewHistory');
+      onClose();
     } else if (item.screen) {
+      console.log('[HomeMenu] 일반 화면 이동:', item.screen);
       navigation.navigate(item.screen);
       onClose();
     } else {
       // 나중에 구현할 화면들
+      console.log('[HomeMenu] 준비 중인 기능:', item.title);
       Alert.alert(t('notification'), `${item.title} ${t('comingSoon')}`);
       onClose();
     }
@@ -159,7 +205,7 @@ export default function HomeMenu({ visible, onClose, navigation }) {
               <Ionicons 
                 name={userProfile?.is_premium ? "checkmark-circle" : "chevron-forward"} 
                 size={20} 
-                color={userProfile?.is_premium ? theme.colors.primary : theme.colors.text.secondary} 
+                color={userProfile?.is_premium ? theme.colors.primary : "#000000"} 
               />
             </TouchableOpacity>
 
@@ -182,16 +228,12 @@ export default function HomeMenu({ visible, onClose, navigation }) {
                   <Ionicons 
                     name="chevron-forward" 
                     size={20} 
-                    color={theme.colors.text.secondary} 
+                    color="#000000" 
                   />
                 </TouchableOpacity>
               ); })}
             </ScrollView>
 
-            {/* 로그아웃 */}
-            <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Text style={styles.logoutText}>{t('logout')}</Text>
-            </TouchableOpacity>
           </TouchableOpacity>
         </View>
       </View>
@@ -220,8 +262,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   menuTitle: {
     ...theme.typography.heading,
@@ -234,8 +274,6 @@ const styles = StyleSheet.create({
   userSection: {
     alignItems: 'center',
     paddingVertical: theme.spacing.xl,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
   },
   userName: {
     ...theme.typography.body,
@@ -256,8 +294,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
     paddingVertical: theme.spacing.md,
-    borderBottomWidth: 0.5,
-    borderBottomColor: theme.colors.border,
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -267,17 +303,6 @@ const styles = StyleSheet.create({
     ...theme.typography.body,
     marginLeft: theme.spacing.md,
     color: '#000000',
-  },
-  logoutButton: {
-    paddingVertical: theme.spacing.md,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  logoutText: {
-    ...theme.typography.body,
-    color: theme.colors.error,
-    fontWeight: '600',
   },
 });
 

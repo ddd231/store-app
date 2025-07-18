@@ -62,7 +62,7 @@ export default {
   blog: 'Blog',
   
   // Search
-  searchPlaceholder: 'Enter search terms',
+  searchPlaceholder: '',
   noResults: 'No search results',
   
   // Error Messages

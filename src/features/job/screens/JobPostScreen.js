@@ -13,7 +13,8 @@ import {
 import { theme } from '../../../styles/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { createJobPost } from '../services/jobService';
-import { sanitizeInput, checkPremiumOrAdminAccess } from '../../../shared';
+import { sanitizeInput, supabase } from '../../../shared';
+import { checkPremiumAccess } from '../../../shared/utils/premiumUtils';
 import { useAuth } from '../../auth/hooks/useAuth';
 
 function JobPostScreen({ navigation }) {
@@ -35,22 +36,38 @@ function JobPostScreen({ navigation }) {
     checkAccessPermission();
   }, [user]);
 
-  function checkAccessPermission() {
-    if (!user) {
-      navigation.goBack();
-      return;
-    }
+  async function checkAccessPermission() {
+    try {
+      // 현재 사용자 확인
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) {
+        navigation.goBack();
+        return;
+      }
 
-    if (!checkPremiumOrAdminAccess(user)) {
-      Alert.alert(
-        '전문가 멤버십 필요',
-        '채용·협업 공고 업로드는 전문가 멤버십 전용 기능입니다.',
-        [
-          { text: '취소', onPress: function() { navigation.goBack(); }},
-          { text: '업그레이드', onPress: function() { navigation.navigate('Upgrade'); }}
-        ]
-      );
-      return;
+      // 프리미엄 권한 체크 (만료일 포함)
+      const accessResult = await checkPremiumAccess(currentUser.id);
+      console.log('JobPost 권한 체크 결과:', accessResult);
+      
+      if (!accessResult.isPremium && !accessResult.isAdmin) {
+        const message = accessResult.isExpired 
+          ? '구독이 만료되었습니다. 채용·협업 공고 업로드는 전문가 멤버십 전용 기능입니다.'
+          : '채용·협업 공고 업로드는 전문가 멤버십 전용 기능입니다.';
+          
+        Alert.alert(
+          '전문가 멤버십 필요',
+          message,
+          [
+            { text: '취소', onPress: function() { navigation.goBack(); }},
+            { text: '업그레이드', onPress: function() { navigation.navigate('Upgrade'); }}
+          ]
+        );
+        return;
+      }
+    } catch (error) {
+      console.error('JobPost 권한 확인 오류:', error);
+      navigation.navigate('Upgrade');
     }
   };
 

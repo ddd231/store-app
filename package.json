@@ -1,5 +1,5 @@
 {
-  "name": "portfolio-chat-app",
+  "name": "arld",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -61,6 +61,7 @@
     "@typescript-eslint/parser": "^8.35.1",
     "barrelsby": "^2.8.1",
     "eslint-plugin-react": "^7.37.5",
+    "supabase": "^2.30.4",
     "typescript": "~5.8.3"
   },
   "expo": {

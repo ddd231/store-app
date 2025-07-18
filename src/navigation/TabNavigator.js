@@ -136,7 +136,7 @@ function MainTabs() {
       />
       
       <Tab.Screen 
-        name="Chat" 
+        name="ChatTab" 
         component={ChatNavigator}
         options={{
           title: t('chat'),

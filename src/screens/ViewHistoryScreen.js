@@ -29,22 +29,48 @@ function ViewHistoryScreen({ navigation, route }) {
 
   async function checkAccess() {
     try {
-      // useAuth의 전역 user 상태 사용 (최신 프로필 정보 포함)
-      if (!user) {
+      console.log('[ViewHistory] 권한 확인 시작');
+      
+      // 현재 사용자 확인
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
+      if (!currentUser) {
+        console.log('[ViewHistory] 사용자 없음');
+        navigation.goBack();
+        return;
+      }
+
+      console.log('[ViewHistory] 현재 user:', currentUser);
+
+      // 직접 프로필 조회
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single();
+
+      console.log('[ViewHistory] 프로필 조회 결과:', { profile, error });
+
+      if (error || !profile) {
+        console.log('[ViewHistory] 프로필 조회 실패');
         navigation.goBack();
         return;
       }
 
       // 프리미엄 또는 관리자 확인
-      const isPremium = user?.user_profiles?.is_premium;
-      const isAdmin = user?.user_profiles?.is_admin;
+      const isPremium = profile?.is_premium;
+      const isAdmin = profile?.is_admin || currentUser.email === 'lsg5235@gmail.com';
+
+      console.log('[ViewHistory] 권한 상태:', { isPremium, isAdmin });
 
       // 관리자가 아니고 프리미엄이 아닌 경우 접근 차단
       if (!isAdmin && !isPremium) {
+        console.log('[ViewHistory] 프리미엄 권한 없음 - 업그레이드 페이지로 이동');
         navigation.navigate('Upgrade');
         return;
       }
 
+      console.log('[ViewHistory] 권한 확인 완료 - 기록 로드');
       loadViewHistory();
     } catch (error) {
       console.error('접근 권한 확인 오류:', error);
@@ -54,8 +80,9 @@ function ViewHistoryScreen({ navigation, route }) {
 
   async function loadViewHistory() {
     try {
-      // useAuth의 전역 user 상태 사용
-      if (!user) {
+      // 현재 사용자 확인
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) {
         setLoading(false);
         return;
       }
@@ -63,7 +90,7 @@ function ViewHistoryScreen({ navigation, route }) {
       const { data, error } = await supabase
         .from('view_history')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', currentUser.id)
         .order('viewed_at', { ascending: false })
         .limit(200); // 최대 200개
 

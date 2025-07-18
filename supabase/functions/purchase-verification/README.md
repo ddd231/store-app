@@ -38,7 +38,7 @@ GOOGLE_PLAY_ACCESS_TOKEN=(선택사항: 미리 생성된 액세스 토큰)
   "purchaseToken": "구매_토큰",
   "productId": "expertaccount",
   "userId": "사용자_UUID",
-  "packageName": "com.anonymous.portfoliochatapp"
+  "packageName": "com.arld.app"
 }
 ```
 
@@ -78,7 +78,7 @@ async function verifyPurchase(purchaseToken: string, userId: string) {
         purchaseToken,
         productId: 'expertaccount',
         userId,
-        packageName: 'com.anonymous.portfoliochatapp'
+        packageName: 'com.arld.app'
       }
     });
 

@@ -23,21 +23,48 @@ function HiddenUsersScreen({ navigation }) {
   }, [user]);
 
   async function checkAccessAndLoad() {
-    if (!user) {
+    console.log('[HiddenUsersScreen] checkAccessAndLoad 시작, user:', user?.id);
+    
+    // 현재 사용자 확인
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    if (!currentUser) {
+      console.log('[HiddenUsersScreen] 사용자 없음, 뒤로가기');
+      navigation.goBack();
+      return;
+    }
+
+    console.log('[HiddenUsersScreen] 현재 user:', currentUser);
+
+    // 직접 프로필 조회
+    const { data: profile, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .single();
+
+    console.log('[HiddenUsersScreen] 프로필 조회 결과:', { profile, error });
+
+    if (error || !profile) {
+      console.log('[HiddenUsersScreen] 프로필 조회 실패');
       navigation.goBack();
       return;
     }
 
     // 프리미엄 또는 관리자 확인
-    const isPremium = user?.user_profiles?.is_premium;
-    const isAdmin = user?.user_profiles?.is_admin;
+    const isPremium = profile?.is_premium;
+    const isAdmin = profile?.is_admin || currentUser.email === 'lsg5235@gmail.com';
+    
+    console.log('[HiddenUsersScreen] 권한 확인:', { isPremium, isAdmin });
 
     // 관리자가 아니고 프리미엄이 아닌 경우 접근 차단
     if (!isAdmin && !isPremium) {
+      console.log('[HiddenUsersScreen] 권한 없음, 업그레이드 화면으로 이동');
       navigation.navigate('Upgrade');
       return;
     }
 
+    console.log('[HiddenUsersScreen] 권한 확인됨, 숨긴 사용자 로드');
     loadHiddenUsers();
   };
 
@@ -206,7 +233,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...theme.typography.heading,
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '600',
   },
   headerRight: {
@@ -283,8 +310,9 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     alignItems: 'center',
+    paddingTop: 150,
   },
   emptyState: {
     alignItems: 'center',
@@ -292,6 +320,8 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...theme.typography.heading,
+    fontSize: 18,
+    fontWeight: '600',
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.sm,
     textAlign: 'center',

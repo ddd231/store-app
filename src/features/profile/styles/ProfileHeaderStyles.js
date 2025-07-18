@@ -93,7 +93,7 @@ export const profileHeaderStyles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     borderRadius: theme.borderRadius.full,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: '#000000',
   },
   qrButtonText: {
     ...theme.typography.body,

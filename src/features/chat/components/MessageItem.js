@@ -117,6 +117,8 @@ const MessageItem = memo(function({
         <MessageAttachment 
           attachment={message.attachment}
           onPress={function(attachment) {
+            // 첨부파일 클릭 시 처리 (추후 구현)
+            console.log('첨부파일 클릭:', attachment);
           }}
         />
       )}

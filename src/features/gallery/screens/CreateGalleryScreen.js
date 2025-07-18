@@ -21,24 +21,32 @@ function CreateGalleryScreen({ navigation }) {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
       if (user) {
-        loadUserWorks();
+        loadUserWorks(user);
       }
     } catch (error) {
       console.error('사용자 로드 오류:', error);
     }
   };
 
-  async function loadUserWorks() {
+  async function loadUserWorks(currentUser) {
     try {
+      const userToUse = currentUser || user;
+      if (!userToUse) {
+        console.error('사용자 정보 없음');
+        return;
+      }
+      
       // 내 작품들 가져오기
       const { data: works, error } = await supabase
         .from('works')
         .select('*')
-        .eq('author_id', user.id)
+        .eq('author_id', userToUse.id)
         .order('created_at', { ascending: false });
       
       if (!error) {
         setMyWorks(works || []);
+      } else {
+        console.error('작품 로드 에러:', error);
       }
     } catch (error) {
       console.error('작품 로드 오류:', error);

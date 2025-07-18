@@ -2,7 +2,9 @@ import { StyleSheet, Dimensions, Platform } from 'react-native';
 import { theme } from '../../../styles/theme';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 48) / 3;
+const portfolioGap = 8; // Gap between artworks
+const portfolioPadding = portfolioGap; // Side margins equal to gap
+const cardWidth = (width - (portfolioPadding * 2) - (portfolioGap * 2)) / 3;
 
 export const profileStyles = StyleSheet.create({
   container: {
@@ -14,8 +16,8 @@ export const profileStyles = StyleSheet.create({
     paddingBottom: 20,
   },
   portfolioRow: {
-    justifyContent: 'space-evenly',
-    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    paddingHorizontal: portfolioPadding,
   },
   loadingContainer: {
     padding: theme.spacing.xl,
