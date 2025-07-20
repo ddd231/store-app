@@ -78,8 +78,12 @@ export default function AccountDeletionScreen({ navigation }) {
               // 진짜 사용자 계정 삭제 - Service Role Key로 직접 Cascade 삭제
               console.log('[AccountDeletionScreen] 진짜 계정 삭제 시작');
               
-              // Service Role Key로 Admin Client 생성
-              const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1ZG5ta3llZHZoZGdmdGJ3YXR0Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NzQ5Nzk2NiwiZXhwIjoyMDYzMDczOTY2fQ.Z1RYZVQ25FN6ufO1I79KLEf96Jqqdzk-F0GL8p5b260';
+              // Service Role Key로 Admin Client 생성 (환경변수에서 로드)
+              const serviceRoleKey = process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
+              
+              if (!serviceRoleKey) {
+                throw new Error('Service Role Key가 환경변수에 설정되지 않았습니다.');
+              }
               
               const adminSupabase = createClient(supabaseUrl, serviceRoleKey, {
                 auth: {
