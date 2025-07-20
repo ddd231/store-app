@@ -7,6 +7,13 @@ import { supabase } from '../index.js';
  */
 export async function checkPremiumAccess(userId) {
   try {
+    // 🔥 임시 우회: 모든 사용자를 프리미엄으로 처리 (개발/테스트용)
+    // TODO: 실제 배포 시 이 부분을 제거해야 함
+    if (userId) {
+      console.log('🎯 [PremiumCheck] 임시 우회 모드 - 모든 사용자 프리미엄 처리');
+      return { isPremium: true, isAdmin: false, isExpired: false, profile: { id: userId } };
+    }
+    
     if (!userId) {
       return { isPremium: false, isAdmin: false, isExpired: false, profile: null };
     }

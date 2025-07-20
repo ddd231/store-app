@@ -280,7 +280,7 @@ import { LoginScreen, useAuth } from '../features/auth';
 로그인: 15분/10회
 회원가입: 1시간/4회
 메시지 전송: 1분/30개, 하루/500개
-작품 업로드: 하루/15개
+작품 업로드: 하루/10개
 파일 업로드: 10분/10회
 ```
 
@@ -398,6 +398,12 @@ npx eas-cli@latest build -p ios           # iOS 빌드
 - **[개발 규칙]** 함수 스타일, 컴포넌트 최적화 규칙 정의
 - **[상태 관리]** Zustand + React Query 패턴 문서화
 
+### 2025-07-19
+- **[UI 개선]** 작품업로드 UI 개선 - WorkTypeSelectScreen 삭제하고 ProfileModals의 업로드 모달 사용
+- **[기능 변경]** 하루 작품 업로드 개수 제한 15개 → 10개로 변경 (`rateLimiter.js`)
+- **[임시 설정]** 프리미엄 기능 임시 비활성화 - `premiumUtils.js`의 `checkPremiumAccess` 함수에서 모든 사용자를 프리미엄으로 처리하도록 임시 우회 로직 추가 (개발/테스트용)
+- **[아이콘 변경]** 앱 아이콘을 ARLD_icon_512x512.png로 변경 (icon.png, adaptive-icon.png, favicon.png)
+
 ### 📝 향후 변경사항 작성 가이드
 
 **새로운 변경사항이 있을 때 다음 형식으로 추가:**
@@ -415,6 +421,6 @@ npx eas-cli@latest build -p ios           # iOS 빌드
 
 ---
 
-**마지막 업데이트**: 2025-07-17
+**마지막 업데이트**: 2025-07-19
 **프로젝트 버전**: 1.0.0
 **작성자**: Claude Code Assistant

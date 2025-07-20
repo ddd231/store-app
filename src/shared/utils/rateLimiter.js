@@ -13,7 +13,7 @@ const RATE_LIMITS = {
   messagePostDaily: { requests: 500, windowMs: 24 * 60 * 60 * 1000 }, // 하루에 500번
   jobPost: { requests: 5, windowMs: 24 * 60 * 60 * 1000 }, // 24시간에 5번
   contestPost: { requests: 2, windowMs: 24 * 60 * 60 * 1000 }, // 하루에 2번
-  workUpload: { requests: 15, windowMs: 24 * 60 * 60 * 1000 }, // 하루에 15번
+  workUpload: { requests: 10, windowMs: 24 * 60 * 60 * 1000 }, // 하루에 10번
 };
 
 // 요청 기록 저장소 (메모리 기반)

@@ -11,6 +11,7 @@ import CategoryTabs from '../components/CategoryTabs';
 import SearchBar from '../components/SearchBar';
 import ArtworkGrid from '../components/ArtworkGrid';
 import FilterModal from '../components/FilterModal';
+import { BottomBannerAd } from '../../../shared';
 
 export default function HomeScreen({ navigation }) {
   const { t } = useLanguage();
@@ -122,6 +123,9 @@ export default function HomeScreen({ navigation }) {
         onClose={function() { setMenuVisible(false); }}
         navigation={navigation}
       />
+
+      {/* Bottom Banner Ad */}
+      <BottomBannerAd />
     </View>
   );
 }

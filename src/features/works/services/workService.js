@@ -28,7 +28,7 @@ export async function uploadPaintingWork({ title, description, category, imageUr
     // 작품 업로드 일일 제한 체크
     const rateLimit = RateLimitedActions.checkWorkUpload(userId);
     if (!rateLimit.allowed) {
-      throw new Error(rateLimit.message || '하루 작품 업로드 제한(15개)을 초과했습니다.');
+      throw new Error(rateLimit.message || '하루 작품 업로드 제한(10개)을 초과했습니다.');
     }
     
     // 사용자 프로필에서 이름 정보 가져오기
@@ -113,7 +113,7 @@ export async function uploadNovelWork({ title, description, category, content })
     // 작품 업로드 일일 제한 체크
     const rateLimit = RateLimitedActions.checkWorkUpload(userId);
     if (!rateLimit.allowed) {
-      throw new Error(rateLimit.message || '하루 작품 업로드 제한(15개)을 초과했습니다.');
+      throw new Error(rateLimit.message || '하루 작품 업로드 제한(10개)을 초과했습니다.');
     }
     
     // 사용자 프로필에서 이름 정보 가져오기

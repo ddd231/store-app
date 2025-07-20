@@ -12,6 +12,7 @@ import ProfilePortfolio from '../components/ProfilePortfolio';
 import { useProfileData } from '../hooks/useProfileData';
 import { useProfileActions } from '../hooks/useProfileActions';
 import { useProfileMenu } from '../hooks/useProfileMenu';
+import { BottomBannerAd } from '../../../shared';
 
 export default function ProfileScreen({ navigation, route }) {
   const { t } = useLanguage();
@@ -172,6 +173,9 @@ export default function ProfileScreen({ navigation, route }) {
         navigation={navigation}
         onUserMenuPress={handleUserMenuPress}
       />
+      
+      {/* Bottom Banner Ad */}
+      <BottomBannerAd />
     </View>
   );
 }

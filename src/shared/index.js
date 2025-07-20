@@ -7,6 +7,7 @@ export { default as ErrorBoundary } from './components/ErrorBoundary';
 export { default as WorkCard } from './components/WorkCard';
 export { default as Screen } from './components/Screen';
 export { default as OptimizedImage } from './components/OptimizedImage';
+export { default as BottomBannerAd } from './components/BottomBannerAd';
 // FileUploadButton은 순환 참조를 피하기 위해 주석 처리
 // export { default as FileUploadButton } from './components/FileUploadButton';
 
